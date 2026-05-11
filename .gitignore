@@ -7,3 +7,9 @@ data/
 .venv/
 venv/
 backup/client_secret.json
+
+# Next.js frontend (web/)
+web/.env.local
+web/node_modules/
+web/.next/
+web/tsconfig.tsbuildinfo

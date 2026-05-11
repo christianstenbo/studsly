@@ -436,6 +436,123 @@ def bl_fetch_part(part_num: str) -> dict | None:
         return None
 
 
+def identify_lego_part_from_image(image_bytes: bytes, content_type: str) -> dict:
+    """
+    Fokusert AI-identifikasjon for LEGO-deler — ingen type_guess, bare del-info.
+    Returns: {part_num, part_description, part_search_query, part_color_bl, confidence, note}
+    """
+    if not ANTHROPIC_API_KEY:
+        return {"part_num": None, "part_description": None, "part_search_query": None,
+                "part_color_bl": None, "confidence": "low", "note": "ANTHROPIC_API_KEY ikke satt."}
+    try:
+        small_bytes, media_type = _resize_image(image_bytes, content_type)
+        img_b64 = base64.standard_b64encode(small_bytes).decode("utf-8")
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=200,
+            temperature=0,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image",
+                     "source": {"type": "base64", "media_type": media_type, "data": img_b64}},
+                    {"type": "text", "text": (
+                        "Du er ekspert på LEGO-deler. Bildet viser én eller noen få løse LEGO-deler.\n\n"
+                        "Identifiser:\n"
+                        "1. part_num: BrickLink/Rebrickable-delnummer hvis synlig eller gjenkjennelig "
+                        "(f.eks. '3001', '3039', '54200'). Null hvis ukjent.\n"
+                        "2. part_description: Norsk/engelsk beskrivelse av deltype og farge "
+                        "(f.eks. 'Brick 2x4, Red' eller '2×4 kloss, rød').\n"
+                        "3. part_search_query: 2–4 engelske ord egnet for Rebrickable-søk "
+                        "(f.eks. '2x4 brick' eller 'curved slope 1x2').\n"
+                        "4. part_color_bl: Rebrickable/BrickLink-fargenavn på engelsk "
+                        "(f.eks. 'Red', 'Dark Bluish Gray', 'Trans-Clear'). Null hvis usikker.\n"
+                        "5. confidence: 'high' hvis sikker på alt, 'medium' hvis noenlunde, 'low' hvis usikker.\n\n"
+                        "Svar KUN med JSON:\n"
+                        '{"part_num":"3001","part_description":"Brick 2x4, red",'
+                        '"part_search_query":"2x4 brick","part_color_bl":"Red","confidence":"high"}'
+                    )},
+                ],
+            }],
+        )
+        raw = msg.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        result = json.loads(raw.strip())
+        return {
+            "part_num":          result.get("part_num"),
+            "part_description":  result.get("part_description"),
+            "part_search_query": result.get("part_search_query"),
+            "part_color_bl":     result.get("part_color_bl"),
+            "confidence":        result.get("confidence", "low"),
+            "note": "",
+        }
+    except json.JSONDecodeError:
+        return {"part_num": None, "part_description": None, "part_search_query": None,
+                "part_color_bl": None, "confidence": "low", "note": "Kunne ikke tolke AI-svar."}
+    except Exception as e:
+        return {"part_num": None, "part_description": None, "part_search_query": None,
+                "part_color_bl": None, "confidence": "low", "note": f"Feil: {e}"}
+
+
+def identify_lego_minifig_from_image(image_bytes: bytes, content_type: str) -> dict:
+    """
+    Fokusert AI-identifikasjon for LEGO-minifigurer.
+    Returns: {fig_num, name, theme_hint, confidence, note}
+    """
+    if not ANTHROPIC_API_KEY:
+        return {"fig_num": None, "name": None, "theme_hint": None,
+                "confidence": "low", "note": "ANTHROPIC_API_KEY ikke satt."}
+    try:
+        small_bytes, media_type = _resize_image(image_bytes, content_type)
+        img_b64 = base64.standard_b64encode(small_bytes).decode("utf-8")
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=150,
+            temperature=0,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image",
+                     "source": {"type": "base64", "media_type": media_type, "data": img_b64}},
+                    {"type": "text", "text": (
+                        "Du er ekspert på LEGO-minifigurer. Bildet viser én eller flere LEGO-minifigurer.\n\n"
+                        "Identifiser:\n"
+                        "1. fig_num: BrickLink-figurnummer hvis gjenkjennelig (f.eks. 'sw0001', 'hp001'). Null hvis ukjent.\n"
+                        "2. name: Navn på figuren på norsk eller engelsk (f.eks. 'Darth Vader', 'Harry Potter').\n"
+                        "3. theme_hint: Tema/univers (f.eks. 'Star Wars', 'Harry Potter', 'City'). Null hvis ukjent.\n"
+                        "4. confidence: 'high' / 'medium' / 'low'.\n\n"
+                        "Svar KUN med JSON:\n"
+                        '{"fig_num":"sw0001","name":"Darth Vader","theme_hint":"Star Wars","confidence":"high"}'
+                    )},
+                ],
+            }],
+        )
+        raw = msg.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        result = json.loads(raw.strip())
+        return {
+            "fig_num":    result.get("fig_num"),
+            "name":       result.get("name"),
+            "theme_hint": result.get("theme_hint"),
+            "confidence": result.get("confidence", "low"),
+            "note": "",
+        }
+    except json.JSONDecodeError:
+        return {"fig_num": None, "name": None, "theme_hint": None,
+                "confidence": "low", "note": "Kunne ikke tolke AI-svar."}
+    except Exception as e:
+        return {"fig_num": None, "name": None, "theme_hint": None,
+                "confidence": "low", "note": f"Feil: {e}"}
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def _bl_category_name(cat_id: int) -> tuple[str | None, int | None]:
     """Return (category_name, parent_id) for a BrickLink category, cached."""
@@ -1469,6 +1586,7 @@ def init_state():
         "bl_name_secondary":    None,    # BL official name shown as caption when != name
         # ── Hurtigscan ────────────────────────────────────────────────────────
         "hs_screen":          1,        # 1=sesjon, 2=input, 3=id-kort, 4=bekreftelse, 5=søk
+        "hs_mode":            "SET",    # SET | PART | MINIFIG — valgt modus for sesjonen
         "hs_loc_level1":      None,     # Sted (obligatorisk)
         "hs_loc_level2":      None,     # Enhet
         "hs_loc_level3":      None,     # Posisjon
@@ -1485,6 +1603,10 @@ def init_state():
         "hs_last_ownership_id": None,
         "hs_last_set_name":   None,
         "hs_last_obj_uuid":   None,
+        # Del-spesifikke nøkler (PART-modus)
+        "hs_part_data":       None,     # {part_num, name, category, part_img_url}
+        "hs_part_color_id":   None,     # Rebrickable color id (int)
+        "hs_part_color_name": None,     # Rebrickable color name (str)
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -3835,10 +3957,11 @@ with tab_hurtigscan:
         return " ".join(bits)
 
     def _hs_clear_scan():
-        """Nullstill kun gjeldende skann — behold sesjon og lokasjon."""
+        """Nullstill kun gjeldende skann — behold sesjon, lokasjon og modus."""
         for k in ("hs_img_bytes", "hs_img_type", "hs_ai_result", "hs_set_data",
                   "hs_condition", "hs_wear_level", "hs_search_query",
-                  "hs_search_results", "hs_last_img_id"):
+                  "hs_search_results", "hs_last_img_id",
+                  "hs_part_data", "hs_part_color_id", "hs_part_color_name"):
             st.session_state[k] = None
         st.session_state["hs_condition"] = "BUILT"
 
@@ -3848,9 +3971,11 @@ with tab_hurtigscan:
                   "hs_img_bytes", "hs_img_type", "hs_ai_result", "hs_set_data",
                   "hs_condition", "hs_wear_level", "hs_search_query", "hs_search_results",
                   "hs_last_img_id", "hs_last_ownership_id", "hs_last_set_name",
-                  "hs_last_obj_uuid"):
+                  "hs_last_obj_uuid",
+                  "hs_part_data", "hs_part_color_id", "hs_part_color_name"):
             st.session_state[k] = None
         st.session_state["hs_condition"] = "BUILT"
+        st.session_state["hs_mode"]      = "SET"
         st.session_state["hs_screen"]    = 1
 
     def _hs_translate_query(query: str) -> str:
@@ -3973,6 +4098,52 @@ with tab_hurtigscan:
         st.session_state["hs_last_obj_uuid"]     = obj_uuid
         st.session_state["hs_screen"]            = 4
 
+    def _hs_save_part(part_data: dict, color_id: int | None, color_name: str | None,
+                      img_bytes: bytes | None, img_type: str | None):
+        """Lagre løs del i DB og gå til bekreftelse-skjerm."""
+        loc_str = _hs_loc_str()
+        loc_id  = get_or_create_location(loc_str, user_id=_current_user.id) if loc_str else None
+
+        part_num = part_data.get("part_num") or ""
+        name     = part_data.get("name") or part_data.get("part_description") or part_num
+
+        ownership_id = next_ownership_id()
+        record = {
+            "user_id":        _current_user.id,
+            "ownership_id":   ownership_id,
+            "status":         "OWNED",
+            "object_type":    "PART",
+            "set_number":     part_num,
+            "name":           name,
+            "condition":      "USED",
+            "location_id":    loc_id,
+            "registered_at":  str(date.today()),
+            "quality_level":  "BASIC",
+            "part_color_id":  color_id,
+            "part_color_name": color_name,
+        }
+        save_object(record)
+
+        obj_uuid = None
+        try:
+            rows = sb_get("objects", {"ownership_id": f"eq.{ownership_id}", "select": "id"})
+            obj_uuid = rows[0]["id"] if rows else None
+        except Exception:
+            pass
+
+        if img_bytes and obj_uuid:
+            try:
+                save_documentation_image(
+                    obj_uuid, ownership_id,
+                    img_bytes, img_type or "image/jpeg")
+            except Exception:
+                pass
+
+        st.session_state["hs_last_ownership_id"] = ownership_id
+        st.session_state["hs_last_set_name"]     = name
+        st.session_state["hs_last_obj_uuid"]     = obj_uuid
+        st.session_state["hs_screen"]            = 4
+
     # ── Hent gjeldende skjerm ────────────────────────────────────────────────
     hs_screen = st.session_state.get("hs_screen") or 1
 
@@ -3981,8 +4152,22 @@ with tab_hurtigscan:
     # ─────────────────────────────────────────────────────────────────────────
     if hs_screen == 1:
         st.subheader("⚡ Hurtigscan")
-        st.caption("Lokasjonen du velger gjelder for alle sett du registrerer i denne sesjonen.")
+        st.caption("Lokasjonen og modusen du velger gjelder for alle objekter i denne sesjonen.")
         st.divider()
+
+        # ── Modusvalgsskjerm ──────────────────────────────────────────────
+        st.markdown("#### Hva skal registreres?")
+        _mode_labels  = {"SET": "🧱 Sett", "PART": "🔩 Deler", "MINIFIG": "👾 Minifigs"}
+        _cur_mode_lbl = _mode_labels.get(st.session_state.get("hs_mode") or "SET", "🧱 Sett")
+        _mode_pick = st.radio(
+            "Modus",
+            list(_mode_labels.values()),
+            index=list(_mode_labels.values()).index(_cur_mode_lbl),
+            horizontal=True,
+            label_visibility="collapsed",
+            key="hs_mode_radio",
+        )
+        st.session_state["hs_mode"] = {v: k for k, v in _mode_labels.items()}[_mode_pick]
 
         st.markdown("#### Velg lokasjon")
 
@@ -4046,8 +4231,16 @@ with tab_hurtigscan:
 
         st.divider()
 
+        hs_mode = st.session_state.get("hs_mode") or "SET"
+        _scan_label = {"SET": "🧱 sett", "PART": "🔩 del", "MINIFIG": "👾 minifig"}[hs_mode]
+        _search_ph  = {
+            "SET":     "Settnummer eller navn (norsk støttes) …",
+            "PART":    "Delnummer eller beskrivelse (f.eks. '3001' eller '2x4 kloss') …",
+            "MINIFIG": "Figurkode eller navn (f.eks. 'sw0001' eller 'Darth Vader') …",
+        }[hs_mode]
+
         # ── Bilde-opplasting ──────────────────────────────────────────────
-        st.markdown("#### 📷 Skann sett")
+        st.markdown(f"#### 📷 Skann {_scan_label}")
         img_file = st.file_uploader(
             "Ta bilde eller velg fra bibliotek",
             type=["jpg", "jpeg", "png", "webp"],
@@ -4077,54 +4270,102 @@ with tab_hurtigscan:
                 st.session_state["hs_img_bytes"] = img_bytes
                 st.session_state["hs_img_type"]  = img_file.type
 
-                with st.spinner("Analyserer bilde …"):
-                    ai = identify_lego_from_image(img_bytes, img_file.type)
-                st.session_state["hs_ai_result"] = ai
+                # ── PART-modus: fokusert del-identifikasjon ────────────────
+                if hs_mode == "PART":
+                    with st.spinner("Identifiserer del …"):
+                        ai_part = identify_lego_part_from_image(img_bytes, img_file.type)
+                    st.session_state["hs_ai_result"] = ai_part
+                    pn   = ai_part.get("part_num")
+                    conf = ai_part.get("confidence", "low")
+                    if pn and conf in ("high", "medium"):
+                        with st.spinner("Henter delinfo …"):
+                            bl_part = bl_fetch_part(pn)
+                        if bl_part:
+                            st.session_state["hs_part_data"] = bl_part
+                            st.session_state["hs_screen"]    = 3
+                            st.rerun()
+                    # Del ikke gjenkjent — gå til søk med AI-forslag som pre-fylt søkefelt
+                    if st.session_state.get("hs_screen") != 3:
+                        st.session_state["hs_search_query"]   = (
+                            ai_part.get("part_search_query") or ai_part.get("part_num") or "")
+                        st.session_state["hs_search_results"] = None
+                        st.session_state["hs_screen"]         = 5
+                        st.rerun()
 
-                wear = ai.get("wear_level")
-                if wear in WEAR_LABEL:
-                    st.session_state["hs_wear_level"] = wear
-
-                sn   = ai.get("set_number")
-                conf = ai.get("confidence", "low")
-                typ  = ai.get("type_guess", "OTHER")
-
-                if typ in ("SET", "MINIFIG") and sn and conf in ("high", "medium"):
-                    # Prøv å hente settinfo fra RB + BL
-                    with st.spinner("Henter settinfo …"):
-                        try:
-                            base = sn.split("-")[0]
-                            variants = rb_search_variants(base)
-                            if variants:
-                                match = next(
-                                    (v for v in variants if v.get("set_num") == sn),
-                                    variants[0])
-                                rb_data = rb_lookup(match.get("set_num", sn))
+                # ── MINIFIG-modus: fokusert minifig-identifikasjon ─────────
+                elif hs_mode == "MINIFIG":
+                    with st.spinner("Identifiserer minifig …"):
+                        ai_fig = identify_lego_minifig_from_image(img_bytes, img_file.type)
+                    st.session_state["hs_ai_result"] = ai_fig
+                    fig_num = ai_fig.get("fig_num")
+                    conf    = ai_fig.get("confidence", "low")
+                    if fig_num and conf in ("high", "medium"):
+                        with st.spinner("Henter figurinfo …"):
+                            try:
+                                rb_data = rb_lookup(fig_num)
                                 if rb_data:
-                                    sd = _hs_build_set_data(rb_data, typ)
+                                    sd = _hs_build_set_data(rb_data, "MINIFIG")
                                     st.session_state["hs_set_data"]  = sd
-                                    st.session_state["hs_condition"] = "BUILT"
+                                    st.session_state["hs_condition"] = "USED"
                                     st.session_state["hs_screen"]    = 3
                                     st.rerun()
-                        except Exception:
-                            pass
+                            except Exception:
+                                pass
+                    if st.session_state.get("hs_screen") != 3:
+                        st.session_state["hs_search_query"]   = (
+                            ai_fig.get("name") or ai_fig.get("fig_num") or "")
+                        st.session_state["hs_search_results"] = None
+                        st.session_state["hs_screen"]         = 5
+                        st.rerun()
 
-                # Fant ikke → skjerm 5 (manuelt søk)
-                if st.session_state.get("hs_screen") != 3:
-                    st.session_state["hs_search_results"] = None
-                    st.session_state["hs_search_query"]   = None
-                    st.session_state["hs_screen"]         = 5
-                    st.rerun()
+                # ── SET-modus: original flyt ───────────────────────────────
+                else:
+                    with st.spinner("Analyserer bilde …"):
+                        ai = identify_lego_from_image(img_bytes, img_file.type)
+                    st.session_state["hs_ai_result"] = ai
+
+                    wear = ai.get("wear_level")
+                    if wear in WEAR_LABEL:
+                        st.session_state["hs_wear_level"] = wear
+
+                    sn   = ai.get("set_number")
+                    conf = ai.get("confidence", "low")
+                    typ  = ai.get("type_guess", "OTHER")
+
+                    if typ in ("SET", "MINIFIG") and sn and conf in ("high", "medium"):
+                        with st.spinner("Henter settinfo …"):
+                            try:
+                                base = sn.split("-")[0]
+                                variants = rb_search_variants(base)
+                                if variants:
+                                    match = next(
+                                        (v for v in variants if v.get("set_num") == sn),
+                                        variants[0])
+                                    rb_data = rb_lookup(match.get("set_num", sn))
+                                    if rb_data:
+                                        sd = _hs_build_set_data(rb_data, typ)
+                                        st.session_state["hs_set_data"]  = sd
+                                        st.session_state["hs_condition"] = "BUILT"
+                                        st.session_state["hs_screen"]    = 3
+                                        st.rerun()
+                            except Exception:
+                                pass
+
+                    if st.session_state.get("hs_screen") != 3:
+                        st.session_state["hs_search_results"] = None
+                        st.session_state["hs_search_query"]   = None
+                        st.session_state["hs_screen"]         = 5
+                        st.rerun()
 
         # ── Tekst-søk ─────────────────────────────────────────────────────
         st.markdown("---")
-        st.markdown("#### 🔍 Søk på sett")
+        st.markdown(f"#### 🔍 Søk på {_scan_label}")
 
         s_col, b_col = st.columns([5, 1])
         with s_col:
             hs_q = st.text_input(
                 "Søk",
-                placeholder="Settnummer eller navn (norsk støttes) …",
+                placeholder=_search_ph,
                 key="hs_txt_input",
                 label_visibility="collapsed",
             )
@@ -4134,7 +4375,10 @@ with tab_hurtigscan:
 
         if do_txt and hs_q.strip():
             with st.spinner("Søker …"):
-                results = _hs_do_search(hs_q)
+                if hs_mode == "PART":
+                    results = rb_search_parts(hs_q.strip())
+                else:
+                    results = _hs_do_search(hs_q)
             st.session_state["hs_search_results"] = results
             st.session_state["hs_search_query"]   = hs_q.strip()
             st.session_state["hs_screen"]          = 5
@@ -4144,8 +4388,7 @@ with tab_hurtigscan:
     # SKJERM 3: Identifikasjonskortet
     # ─────────────────────────────────────────────────────────────────────────
     elif hs_screen == 3:
-        sd        = st.session_state.get("hs_set_data") or {}
-        ai        = st.session_state.get("hs_ai_result") or {}
+        hs_mode   = st.session_state.get("hs_mode") or "SET"
         img_bytes = st.session_state.get("hs_img_bytes")
 
         # ── Lokasjon-chips + Avslutt ──────────────────────────────────────
@@ -4160,6 +4403,114 @@ with tab_hurtigscan:
                 st.rerun()
 
         st.divider()
+
+        # ══════════════════════════════════════════════════════════════════
+        # PART-kort
+        # ══════════════════════════════════════════════════════════════════
+        if hs_mode == "PART":
+            ai_part   = st.session_state.get("hs_ai_result") or {}
+            part_data = st.session_state.get("hs_part_data") or {}
+
+            # Bildekvalitet-pill
+            conf       = ai_part.get("confidence", "medium")
+            conf_label = {"high": "Bildekvalitet: God",
+                          "medium": "Bildekvalitet: Middels",
+                          "low": "Bildekvalitet: Lav"}.get(conf, "Bildekvalitet: Middels")
+            conf_color = {"high": "#2E7D32", "medium": "#E65100",
+                          "low": "#B71C1C"}.get(conf, "#E65100")
+            st.markdown(
+                f'<span class="hs-pill" style="background:{conf_color}">'
+                f'{conf_label}</span>', unsafe_allow_html=True)
+            st.markdown("")
+
+            img_col, ref_col = st.columns(2)
+            with img_col:
+                if img_bytes:
+                    st.image(img_bytes, caption="Ditt bilde", use_container_width=True)
+            with ref_col:
+                ref = part_data.get("part_img_url")
+                if ref:
+                    st.image(ref, caption="Referansebilde", use_container_width=True)
+                else:
+                    st.markdown("*Ingen referansebilde*")
+
+            # Del-info
+            pn       = part_data.get("part_num") or ai_part.get("part_num") or "–"
+            pname    = part_data.get("name") or ai_part.get("part_description") or "Ukjent del"
+            category = part_data.get("category")
+            st.markdown(f"#### {pname}")
+            info_bits = []
+            if pn and pn != "–": info_bits.append(f"Nr: {pn}")
+            if category:          info_bits.append(category)
+            if info_bits:
+                st.caption(" · ".join(info_bits))
+            st.markdown("")
+
+            # Farge-velger
+            all_colors = rb_fetch_colors()
+            # Fjern ukjent farge (id=0) og sorter
+            all_colors = [c for c in all_colors if c.get("id") != 0]
+            all_colors.sort(key=lambda c: c.get("name", ""))
+            color_names = [c["name"] for c in all_colors]
+            color_ids   = [c["id"]   for c in all_colors]
+
+            # Pre-velg AI-foreslått farge
+            ai_color = ai_part.get("part_color_bl") or ""
+            pre_idx  = 0
+            if ai_color:
+                ai_color_lo = ai_color.lower()
+                matches = [i for i, n in enumerate(color_names) if n.lower() == ai_color_lo]
+                if not matches:
+                    matches = [i for i, n in enumerate(color_names) if ai_color_lo in n.lower()]
+                if matches:
+                    pre_idx = matches[0]
+
+            sel_color_idx = st.selectbox(
+                "Farge",
+                range(len(color_names)),
+                index=pre_idx,
+                format_func=lambda i: color_names[i],
+                key="hs_part_color_sel",
+            )
+            st.session_state["hs_part_color_id"]   = color_ids[sel_color_idx]
+            st.session_state["hs_part_color_name"] = color_names[sel_color_idx]
+
+            st.markdown("")
+
+            ok_col, corr_col = st.columns([3, 1])
+            with corr_col:
+                if st.button("Korriger", key="hs_part_korriger", use_container_width=True):
+                    st.session_state["hs_part_data"]       = None
+                    st.session_state["hs_search_results"]  = None
+                    st.session_state["hs_search_query"]    = None
+                    st.session_state["hs_screen"]          = 5
+                    st.rerun()
+            with ok_col:
+                if st.button("OK →", key="hs_part_ok", type="primary", use_container_width=True):
+                    _pd = part_data if part_data else {
+                        "part_num": ai_part.get("part_num"),
+                        "name":     ai_part.get("part_description"),
+                    }
+                    with st.spinner("Lagrer …"):
+                        try:
+                            _hs_save_part(
+                                _pd,
+                                st.session_state.get("hs_part_color_id"),
+                                st.session_state.get("hs_part_color_name"),
+                                img_bytes,
+                                st.session_state.get("hs_img_type"),
+                            )
+                            st.rerun()
+                        except Exception as _e:
+                            st.error(f"Lagring feilet: {_e}")
+            # Avslutt Skjerm 3 PART-blokk — ikke kjør SET-kortet under
+            st.stop()
+
+        # ══════════════════════════════════════════════════════════════════
+        # SET / MINIFIG-kort (original flyt)
+        # ══════════════════════════════════════════════════════════════════
+        sd = st.session_state.get("hs_set_data") or {}
+        ai = st.session_state.get("hs_ai_result") or {}
 
         # Bildekvalitet-pill
         conf       = ai.get("confidence", "medium")
@@ -4318,6 +4669,7 @@ with tab_hurtigscan:
     # ─────────────────────────────────────────────────────────────────────────
     elif hs_screen == 5:
         img_bytes = st.session_state.get("hs_img_bytes")
+        hs_mode   = st.session_state.get("hs_mode") or "SET"
 
         # ── Lokasjon-chips + Avslutt ──────────────────────────────────────
         h_loc5, h_end5 = st.columns([6, 1])
@@ -4332,19 +4684,26 @@ with tab_hurtigscan:
 
         st.divider()
 
-        st.markdown("### Søk etter settet")
-        st.caption("Vi kan ikke identifisere settet fra bildet. "
-                   "Skriv inn settnummer eller søkeord — norsk støttes.")
+        _obj_label = {"SET": "settet", "PART": "delen", "MINIFIG": "minifiguren"}[hs_mode]
+        _search_ph5 = {
+            "SET":     "Settnummer eller navn (f.eks. 'Ringenes Herre') …",
+            "PART":    "Delnummer eller beskrivelse (f.eks. '3001' eller '2x4 brick') …",
+            "MINIFIG": "Figurkode eller navn (f.eks. 'sw0001' eller 'Darth Vader') …",
+        }[hs_mode]
 
+        st.markdown(f"### Søk etter {_obj_label}")
         if img_bytes:
+            st.caption("Vi gjenkjente ikke objektet fra bildet. Søk manuelt nedenfor.")
             st.image(img_bytes, width=100, caption="Opplastet bilde")
+        else:
+            st.caption(f"Søk på {_obj_label} nedenfor.")
 
         s2_col, b2_col = st.columns([5, 1])
         with s2_col:
             hs_q2 = st.text_input(
                 "Søk",
                 value=st.session_state.get("hs_search_query") or "",
-                placeholder="Settnummer eller navn (f.eks. 'Ringenes Herre') …",
+                placeholder=_search_ph5,
                 key="hs_manual_input",
                 label_visibility="collapsed",
             )
@@ -4354,7 +4713,10 @@ with tab_hurtigscan:
 
         if do_manual and hs_q2.strip():
             with st.spinner("Søker …"):
-                results = _hs_do_search(hs_q2)
+                if hs_mode == "PART":
+                    results = rb_search_parts(hs_q2.strip())
+                else:
+                    results = _hs_do_search(hs_q2)
             st.session_state["hs_search_results"] = results
             st.session_state["hs_search_query"]   = hs_q2.strip()
             st.rerun()
@@ -4362,40 +4724,76 @@ with tab_hurtigscan:
         results = st.session_state.get("hs_search_results")
 
         if results:
-            st.markdown(f"**{len(results)} treff** — velg riktig sett:")
-            for res in results:
-                r_img  = res.get("set_img_url")
-                r_name = res.get("name", "–")
-                r_sn   = res.get("set_num", "")
-                r_year = res.get("year", "")
+            st.markdown(f"**{len(results)} treff** — velg riktig {_obj_label}:")
 
-                ri, rd, rb_btn = st.columns([1, 5, 1])
-                with ri:
-                    if r_img:
-                        st.image(r_img, width=60)
-                    else:
-                        st.markdown("🧱")
-                with rd:
-                    st.markdown(f"**{html.escape(r_name)}**")
-                    st.caption(f"{r_sn}  ·  {r_year}")
-                with rb_btn:
-                    if st.button("Velg", key=f"hs_pick_{r_sn}", use_container_width=True):
-                        with st.spinner("Henter settinfo …"):
-                            rb_data = rb_lookup(r_sn)
-                        if rb_data:
-                            sd = _hs_build_set_data(rb_data, "SET")
-                            st.session_state["hs_set_data"]  = sd
-                            st.session_state["hs_condition"] = "BUILT"
+            if hs_mode == "PART":
+                # ── Del-søkresultater ──────────────────────────────────────
+                for res in results:
+                    r_img  = res.get("part_img_url")
+                    r_name = res.get("name", "–")
+                    r_pn   = res.get("part_num", "")
+
+                    ri, rd, rb_btn = st.columns([1, 5, 1])
+                    with ri:
+                        if r_img:
+                            st.image(r_img, width=60)
+                        else:
+                            st.markdown("🔩")
+                    with rd:
+                        st.markdown(f"**{html.escape(r_name)}**")
+                        st.caption(f"Nr: {r_pn}")
+                    with rb_btn:
+                        if st.button("Velg", key=f"hs_pick_part_{r_pn}",
+                                     use_container_width=True):
+                            # Hent BL-data for valgt del
+                            with st.spinner("Henter delinfo …"):
+                                bl_part = bl_fetch_part(r_pn)
+                            part_data = bl_part if bl_part else {
+                                "part_num":     r_pn,
+                                "name":         r_name,
+                                "part_img_url": r_img,
+                            }
+                            st.session_state["hs_part_data"] = part_data
                             st.session_state["hs_screen"]    = 3
                             st.rerun()
+                    st.divider()
+
+            else:
+                # ── Sett/Minifig-søkresultater ─────────────────────────────
+                for res in results:
+                    r_img  = res.get("set_img_url")
+                    r_name = res.get("name", "–")
+                    r_sn   = res.get("set_num", "")
+                    r_year = res.get("year", "")
+
+                    ri, rd, rb_btn = st.columns([1, 5, 1])
+                    with ri:
+                        if r_img:
+                            st.image(r_img, width=60)
                         else:
-                            st.error("Kunne ikke hente settdata. Prøv igjen.")
-                st.divider()
+                            st.markdown("🧱")
+                    with rd:
+                        st.markdown(f"**{html.escape(r_name)}**")
+                        st.caption(f"{r_sn}  ·  {r_year}")
+                    with rb_btn:
+                        _obj_type = "MINIFIG" if hs_mode == "MINIFIG" else "SET"
+                        if st.button("Velg", key=f"hs_pick_{r_sn}", use_container_width=True):
+                            with st.spinner("Henter settinfo …"):
+                                rb_data = rb_lookup(r_sn)
+                            if rb_data:
+                                sd = _hs_build_set_data(rb_data, _obj_type)
+                                st.session_state["hs_set_data"]  = sd
+                                st.session_state["hs_condition"] = (
+                                    "USED" if hs_mode == "MINIFIG" else "BUILT")
+                                st.session_state["hs_screen"]    = 3
+                                st.rerun()
+                            else:
+                                st.error("Kunne ikke hente data. Prøv igjen.")
+                    st.divider()
 
         elif results is not None:
-            # Søk er kjørt, men ingen treff
-            st.warning("Ikke funnet. Dette ble ikke lagret.")
-            st.caption("Prøv et annet søkeord eller settnummer.")
+            st.warning(f"Ikke funnet. {_obj_label.capitalize()} ble ikke lagret.")
+            st.caption("Prøv et annet søkeord eller nummer.")
 
         if st.button("← Tilbake til skanning", key="hs_back_scan"):
             st.session_state["hs_search_results"] = None
