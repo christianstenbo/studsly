@@ -1,7 +1,16 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, ChevronUp, ChevronDown, Package, Layers, User } from 'lucide-react'
+import Link from 'next/link'
+import {
+  Search,
+  ChevronUp,
+  ChevronDown,
+  Package,
+  Layers,
+  User,
+  ListChecks,
+} from 'lucide-react'
 import type {
   CollectionObject,
   ObjectType,
@@ -351,7 +360,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                   <SortIcon field="num_parts" active={sortField} dir={sortDir} />
                 </button>
               </th>
-              <th className="text-right px-6 py-3 font-medium text-gray-500">
+              <th className="text-right px-3 py-3 font-medium text-gray-500">
                 <button
                   onClick={() => toggleSort('estimated_value_bl')}
                   className="flex items-center justify-end hover:text-gray-800 ml-auto"
@@ -364,12 +373,13 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                   />
                 </button>
               </th>
+              <th className="pl-3 pr-6 py-3 w-24"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                   Ingen objekter matcher søket ditt.
                 </td>
               </tr>
@@ -377,7 +387,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
             {filtered.map((obj) => (
               <tr
                 key={obj.id}
-                className="hover:bg-gray-50 transition-colors cursor-pointer"
+                className="hover:bg-gray-50 transition-colors"
               >
                 {/* Thumbnail */}
                 <td className="pl-6 pr-2 py-3">
@@ -435,8 +445,24 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                 </td>
 
                 {/* BL value */}
-                <td className="px-6 py-3 text-right text-gray-700 tabular-nums font-medium">
+                <td className="px-3 py-3 text-right text-gray-700 tabular-nums font-medium">
                   {formatNok(obj.estimated_value_bl)}
+                </td>
+
+                {/* Delsjekk – kun for sett */}
+                <td className="pl-3 pr-6 py-3 text-right">
+                  {obj.object_type === 'SET' && (
+                    <Link
+                      href={`/collection/${obj.id}/parts-check`}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs
+                                 font-medium text-gray-500 hover:text-[#2E5FA3] hover:bg-[#2E5FA3]/10
+                                 transition-colors"
+                      title="Delsjekk"
+                    >
+                      <ListChecks size={13} />
+                      <span className="hidden lg:inline">Delsjekk</span>
+                    </Link>
+                  )}
                 </td>
               </tr>
             ))}
