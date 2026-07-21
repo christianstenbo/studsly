@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     template: "%s — Studsly",
     default: "Studsly — LEGO Collection Intelligence",
   },
-  description: "AI-drevet oversikt og organisering av din LEGO-samling",
+  description: "AI-powered overview and organization of your LEGO collection",
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="no">
+    <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

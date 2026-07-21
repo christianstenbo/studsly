@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { LoginForm } from "./login-form"
+import { strings } from "@/lib/i18n/strings"
 
 export const metadata = {
-  title: "Logg inn — Studsly",
-  description: "AI-drevet LEGO-samleroversikt",
+  title: strings.common.auth.pageTitle,
+  description: strings.common.auth.pageDescription,
 }
 
 export default async function LoginPage({
@@ -40,21 +41,23 @@ export default async function LoginPage({
               <circle cx="14" cy="14" r="3" fill="white" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Studsly</h1>
-          <p className="text-sm text-gray-500">LEGO-samlingen din, intelligent organisert</p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            {strings.common.appName}
+          </h1>
+          <p className="text-sm text-gray-500">{strings.common.auth.tagline}</p>
         </div>
 
         {/* Login card */}
         <LoginForm error={error} />
 
         <p className="text-center text-xs text-gray-400">
-          Ved å logge inn godtar du våre{" "}
+          {strings.common.auth.legalPrefix}{" "}
           <a href="#" className="underline hover:text-gray-600">
-            vilkår
+            {strings.common.auth.terms}
           </a>{" "}
-          og{" "}
+          {strings.common.auth.legalConjunction}{" "}
           <a href="#" className="underline hover:text-gray-600">
-            personvernpolicy
+            {strings.common.auth.privacy}
           </a>
           .
         </p>

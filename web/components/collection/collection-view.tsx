@@ -15,7 +15,10 @@ import type {
   CollectionObject,
   ObjectType,
 } from '@/lib/types/objects'
-import { ALL_OBJECT_TYPES, OBJECT_TYPE_LABELS, CONDITION_LABELS } from '@/lib/types/objects'
+import { ALL_OBJECT_TYPES } from '@/lib/types/objects'
+import { strings } from '@/lib/i18n/strings'
+
+const t = strings.collection
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,13 +55,13 @@ function conditionColor(condition: string): string {
 }
 
 function displayName(obj: CollectionObject): string {
-  return obj.name ?? obj.name_bl ?? '(uten navn)'
+  return obj.name ?? obj.name_bl ?? strings.common.unnamed
 }
 
 function displayId(obj: CollectionObject): string {
   if (obj.set_number) return obj.set_number
   if (obj.bl_item_no) return obj.bl_item_no
-  return '–'
+  return strings.common.none
 }
 
 function imageUrl(supabaseUrl: string, filename: string | null): string | null {
@@ -67,8 +70,8 @@ function imageUrl(supabaseUrl: string, filename: string | null): string | null {
 }
 
 function formatNok(value: number | null): string {
-  if (value === null || value === undefined) return '–'
-  return new Intl.NumberFormat('nb-NO', {
+  if (value === null || value === undefined) return strings.common.none
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'NOK',
     maximumFractionDigits: 0,
@@ -247,7 +250,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
   }
 
   const typesWithObjects = ALL_OBJECT_TYPES.filter(
-    (t) => (typeCounts[t] ?? 0) > 0
+    (type) => (typeCounts[type] ?? 0) > 0
   )
 
   return (
@@ -256,9 +259,9 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
       <div className="px-6 pt-6 pb-4 border-b border-gray-100">
         <div className="flex items-end justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Samling</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">{t.title}</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {objects.length} objekter · BL-verdi {formatNok(totalValue)}
+              {t.summary(objects.length, formatNok(totalValue))}
             </p>
           </div>
         </div>
@@ -273,7 +276,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            Alle
+            {t.allTab}
             <span
               className={`ml-1.5 text-xs ${
                 activeType === 'ALL' ? 'text-gray-300' : 'text-gray-400'
@@ -293,7 +296,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              {OBJECT_TYPE_LABELS[type]}
+              {t.objectTypes[type]}
               <span
                 className={`ml-1.5 text-xs ${
                   activeType === type ? 'text-gray-300' : 'text-gray-400'
@@ -315,7 +318,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
           />
           <input
             type="text"
-            placeholder="Søk på navn, nummer, tema…"
+            placeholder={t.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg
@@ -336,7 +339,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                   onClick={() => toggleSort('name')}
                   className="flex items-center hover:text-gray-800"
                 >
-                  Navn
+                  {t.columns.name}
                   <SortIcon field="name" active={sortField} dir={sortDir} />
                 </button>
               </th>
@@ -345,7 +348,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                   onClick={() => toggleSort('theme')}
                   className="flex items-center hover:text-gray-800"
                 >
-                  Tema
+                  {t.columns.theme}
                   <SortIcon field="theme" active={sortField} dir={sortDir} />
                 </button>
               </th>
@@ -354,19 +357,19 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                   onClick={() => toggleSort('year')}
                   className="flex items-center hover:text-gray-800"
                 >
-                  År
+                  {t.columns.year}
                   <SortIcon field="year" active={sortField} dir={sortDir} />
                 </button>
               </th>
               <th className="text-left px-3 py-3 font-medium text-gray-500 hidden sm:table-cell">
-                Kondisjon
+                {t.columns.condition}
               </th>
               <th className="text-right px-3 py-3 font-medium text-gray-500 hidden lg:table-cell">
                 <button
                   onClick={() => toggleSort('num_parts')}
                   className="flex items-center justify-end hover:text-gray-800 ml-auto"
                 >
-                  Deler
+                  {t.columns.parts}
                   <SortIcon field="num_parts" active={sortField} dir={sortDir} />
                 </button>
               </th>
@@ -374,9 +377,9 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                 <button
                   onClick={() => toggleSort('num_minifigs')}
                   className="flex items-center justify-end hover:text-gray-800 ml-auto"
-                  title="Antall minifigurer"
+                  title={t.minifigCountTitle}
                 >
-                  Minifig
+                  {t.columns.minifigs}
                   <SortIcon field="num_minifigs" active={sortField} dir={sortDir} />
                 </button>
               </th>
@@ -385,7 +388,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                   onClick={() => toggleSort('estimated_value_bl')}
                   className="flex items-center justify-end hover:text-gray-800 ml-auto"
                 >
-                  BL-verdi
+                  {t.columns.blValue}
                   <SortIcon
                     field="estimated_value_bl"
                     active={sortField}
@@ -400,7 +403,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
-                  Ingen objekter matcher søket ditt.
+                  {t.empty}
                 </td>
               </tr>
             )}
@@ -436,7 +439,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                 {/* Theme */}
                 <td className="px-3 py-3 hidden md:table-cell">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-gray-700">{obj.theme ?? '–'}</span>
+                    <span className="text-gray-700">{obj.theme ?? strings.common.none}</span>
                     {obj.subtheme && (
                       <span className="text-xs text-gray-400">{obj.subtheme}</span>
                     )}
@@ -445,7 +448,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
 
                 {/* Year */}
                 <td className="px-3 py-3 hidden lg:table-cell text-gray-600">
-                  {obj.year ?? '–'}
+                  {obj.year ?? strings.common.none}
                 </td>
 
                 {/* Condition */}
@@ -455,13 +458,13 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                       obj.condition
                     )}`}
                   >
-                    {CONDITION_LABELS[obj.condition] ?? obj.condition}
+                    {t.conditions[obj.condition] ?? obj.condition}
                   </span>
                 </td>
 
                 {/* Num parts */}
                 <td className="px-3 py-3 hidden lg:table-cell text-right text-gray-600 tabular-nums">
-                  {obj.num_parts?.toLocaleString('nb-NO') ?? '–'}
+                  {obj.num_parts?.toLocaleString('en-US') ?? strings.common.none}
                 </td>
 
                 {/* Antall minifigurer */}
@@ -469,10 +472,10 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                   {obj.num_minifigs ? (
                     <span className="inline-flex items-center gap-1 justify-end">
                       <User size={12} className="text-gray-400" />
-                      {obj.num_minifigs.toLocaleString('nb-NO')}
+                      {obj.num_minifigs.toLocaleString('en-US')}
                     </span>
                   ) : (
-                    <span className="text-gray-300">–</span>
+                    <span className="text-gray-300">{strings.common.none}</span>
                   )}
                 </td>
 
@@ -489,10 +492,10 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                       className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs
                                  font-medium text-gray-500 hover:text-[#2E5FA3] hover:bg-[#2E5FA3]/10
                                  transition-colors"
-                      title="Delsjekk"
+                      title={t.partsCheck}
                     >
                       <ListChecks size={13} />
-                      <span className="hidden lg:inline">Delsjekk</span>
+                      <span className="hidden lg:inline">{t.partsCheck}</span>
                     </Link>
                   )}
                 </td>
@@ -505,18 +508,11 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
       {/* ── Footer count ──────────────────────────────────────────────── */}
       {filtered.length > 0 && (
         <div className="px-6 py-2.5 border-t border-gray-100 text-xs text-gray-400 flex justify-between">
+          <span>{t.footer.showing(filtered.length, objects.length)}</span>
           <span>
-            Viser {filtered.length}{' '}
-            {filtered.length !== objects.length
-              ? `av ${objects.length} `
-              : ''}
-            objekter
-          </span>
-          <span>
-            Totalt {formatNok(
-              filtered.reduce(
-                (s, o) => s + (Number(o.estimated_value_bl) || 0),
-                0
+            {t.footer.total(
+              formatNok(
+                filtered.reduce((s, o) => s + (Number(o.estimated_value_bl) || 0), 0)
               )
             )}
           </span>

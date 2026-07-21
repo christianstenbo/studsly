@@ -34,25 +34,6 @@ export interface CollectionObject {
   updated_at: string
 }
 
-export const OBJECT_TYPE_LABELS: Record<ObjectType, string> = {
-  SET: 'Sett',
-  MINIFIG: 'Minifig',
-  PART: 'Del',
-  BULK: 'Bulk',
-  MOC: 'MOC',
-  MOD: 'MOD',
-}
-
-export const CONDITION_LABELS: Record<ObjectCondition, string> = {
-  NEW: 'Ny',
-  SEALED: 'Forseglet',
-  BUILT: 'Bygget',
-  OPENED: 'Åpnet',
-  USED: 'Brukt',
-  INCOMPLETE: 'Ufullstendig',
-  DAMAGED: 'Skadet',
-}
-
 export const ALL_OBJECT_TYPES: ObjectType[] = [
   'SET',
   'MINIFIG',

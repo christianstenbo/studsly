@@ -1,9 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { CollectionView } from '@/components/collection/collection-view'
 import type { CollectionObject } from '@/lib/types/objects'
+import { strings } from '@/lib/i18n/strings'
 
 export const metadata = {
-  title: 'Samling – Studsly',
+  title: strings.collection.pageTitle,
 }
 
 export default async function CollectionPage() {
@@ -24,9 +25,7 @@ export default async function CollectionPage() {
   if (error) {
     console.error('Error fetching collection:', error)
     return (
-      <div className="p-6 text-red-500">
-        Kunne ikke laste samlingen. Prøv igjen.
-      </div>
+      <div className="p-6 text-red-500">{strings.collection.loadFailed}</div>
     )
   }
 

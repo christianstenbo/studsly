@@ -10,16 +10,19 @@ import type {
   ObjectMinifig,
   SparePart,
 } from '@/lib/types/parts'
+import { strings } from '@/lib/i18n/strings'
+
+const t = strings.partsCheck
 
 export const metadata = {
-  title: 'Delsjekk – Studsly',
+  title: t.pageTitle,
 }
 
 const PAGE_SIZE = 1000
 
 type PagedResult = { data: unknown[] | null; error: { message: string } | null }
 
-/** Henter alle rader i sider, siden PostgREST kapper svaret på 1000 rader. */
+/** Fetches every row page by page, since PostgREST caps a response at 1000 rows. */
 async function fetchAllPages<T>(
   makeQuery: (from: number, to: number) => PromiseLike<PagedResult>
 ): Promise<T[]> {
@@ -43,7 +46,7 @@ function BackLink() {
       className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"
     >
       <ArrowLeft size={14} />
-      Tilbake til samlingen
+      {t.back}
     </Link>
   )
 }
@@ -79,19 +82,19 @@ export default async function PartsCheckPage({
 
   if (!obj) notFound()
 
-  const setName = obj.name ?? obj.name_bl ?? '(uten navn)'
+  const setName = obj.name ?? obj.name_bl ?? strings.common.unnamed
 
   if (obj.object_type !== 'SET') {
     return (
       <EmptyState
-        title="Delsjekk er kun for sett"
-        message={`«${setName}» er ikke registrert som et sett, og har derfor ingen offisiell deleliste.`}
+        title={t.notASetTitle}
+        message={t.notASetMessage(setName)}
       />
     )
   }
 
-  // Slå opp mot Rebrickable: bart settnummer først, deretter «-1»-suffiks.
-  // Ved flere inventarversjoner velges den høyeste.
+  // Resolve against Rebrickable. Precedence lives in the view: rebrickable_id,
+  // then CMF via BL number, then set_number exact / with the "-1" suffix.
   const { data: resolved } = await supabase
     .from('v_owned_set_resolved')
     .select('rb_set_num, inventory_id, rb_name, rb_year, rb_num_parts, rb_img_url')
@@ -101,14 +104,14 @@ export default async function PartsCheckPage({
   if (!resolved?.inventory_id) {
     return (
       <EmptyState
-        title="Ingen offisiell deleliste tilgjengelig"
-        message={`Vi fant ikke ${obj.set_number ?? 'settet'} i Rebrickable-katalogen. Det kan være nyere enn katalogen, eller mangle registrert delelager (f.eks. CMF-esker).`}
+        title={t.noListTitle}
+        message={t.noListMessage(obj.set_number ?? 'this set')}
       />
     )
   }
 
-  // Idempotent: oppretter listen første gang, oppdaterer fasit ved senere besøk.
-  // Opptalte antall (qty_present) bevares.
+  // Idempotent: builds the list on first visit, refreshes the reference data on
+  // later ones. Counted quantities (qty_present) are preserved.
   const { error: genError } = await supabase.rpc('generate_parts_checklist', {
     p_object_id: id,
   })
@@ -117,8 +120,8 @@ export default async function PartsCheckPage({
     console.error('generate_parts_checklist failed:', genError)
     return (
       <EmptyState
-        title="Kunne ikke lage delelisten"
-        message="Noe gikk galt ved henting av delelisten fra katalogen. Prøv igjen."
+        title={t.generateFailedTitle}
+        message={t.generateFailedMessage}
       />
     )
   }
@@ -156,7 +159,7 @@ export default async function PartsCheckPage({
     supabase.from('rb_colors').select('id, bl_color_id, bl_color_name'),
   ])
 
-  // BrickLink-farger til want list: color_map er fasit, rb_colors er reserve.
+  // BrickLink colors for the want list: color_map wins, rb_colors is the fallback.
   const blColors: BlColorMap = {}
   for (const c of rbColorRows.data ?? []) {
     if (c.bl_color_id != null) {
@@ -172,7 +175,7 @@ export default async function PartsCheckPage({
     }
   }
 
-  // Eget bilde av objektet går foran katalogbildet
+  // The user's own photo takes precedence over the catalog image
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const setImageUrl = obj.image_filename
     ? `${supabaseUrl}/storage/v1/object/public/object-images/${obj.image_filename}`

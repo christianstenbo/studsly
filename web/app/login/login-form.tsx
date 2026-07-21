@@ -4,6 +4,7 @@ import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { strings } from "@/lib/i18n/strings"
 
 // Google G icon
 function GoogleIcon() {
@@ -51,8 +52,8 @@ export function LoginForm({ error }: { error?: string }) {
   return (
     <Card>
       <CardHeader className="text-center pb-4">
-        <CardTitle className="text-lg">Logg inn</CardTitle>
-        <CardDescription>Bruk Google-kontoen din for å fortsette</CardDescription>
+        <CardTitle className="text-lg">{strings.common.auth.cardTitle}</CardTitle>
+        <CardDescription>{strings.common.auth.cardDescription}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (
@@ -68,7 +69,7 @@ export function LoginForm({ error }: { error?: string }) {
           disabled={loading}
         >
           <GoogleIcon />
-          {loading ? "Logger inn…" : "Fortsett med Google"}
+          {loading ? strings.common.auth.signingIn : strings.common.auth.continueWithGoogle}
         </Button>
       </CardContent>
     </Card>

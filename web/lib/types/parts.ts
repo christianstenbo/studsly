@@ -1,4 +1,4 @@
-/** En rad i avkryssingslisten (inventory_parts) for et sett. */
+/** A row in the checklist (inventory_parts) for a set. */
 export interface InventoryPart {
   id: string
   part_num: string
@@ -10,7 +10,7 @@ export interface InventoryPart {
   part_img_url: string | null
 }
 
-/** En reservedel fra Rebrickable-fasiten (lagres ikke, vises kun). */
+/** A spare part from the Rebrickable reference data (displayed, never stored). */
 export interface SparePart {
   part_num: string
   part_name: string | null
@@ -20,19 +20,12 @@ export interface SparePart {
   part_img_url: string | null
 }
 
-/** Hvor en minifigur kommer fra. */
+/** Where a minifigure came from. */
 export type MinifigSource = 'SET' | 'BAM' | 'CMF' | 'STANDALONE'
 
-export const MINIFIG_SOURCE_LABELS: Record<MinifigSource, string> = {
-  SET: 'Fra sett',
-  BAM: 'Bygg en figur',
-  CMF: 'Samlefigur',
-  STANDALONE: 'Løs figur',
-}
-
 /**
- * En minifigur som hører til et objekt. Figurens deler ligger kun her —
- * aldri i inventory_parts — så ingen del blir talt to ganger.
+ * A minifigure belonging to an object. Its parts live only here — never in
+ * inventory_parts — so no part is ever counted twice.
  */
 export interface ObjectMinifig {
   id: string
@@ -46,7 +39,7 @@ export interface ObjectMinifig {
   source: MinifigSource
 }
 
-/** En del som inngår i en minifigur (fra katalogen, ikke lagret). */
+/** A part belonging to a minifigure (from the catalog, not stored). */
 export interface MinifigPart {
   fig_num: string
   part_num: string
@@ -58,7 +51,7 @@ export interface MinifigPart {
   part_img_url: string | null
 }
 
-/** Katalogdata om settet objektet er slått opp mot. */
+/** Catalog data for the set an object resolved to. */
 export interface ResolvedSetInfo {
   rb_set_num: string | null
   rb_name: string | null
@@ -67,7 +60,7 @@ export interface ResolvedSetInfo {
   rb_img_url: string | null
 }
 
-/** rb_color_id → BrickLink-farge, for want list-eksport. */
+/** rb_color_id → BrickLink color, for want list export. */
 export interface BlColor {
   bl_color_id: number | null
   bl_color_name: string | null

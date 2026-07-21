@@ -7,10 +7,11 @@ import { useRouter, usePathname } from "next/navigation"
 import type { User } from "@supabase/supabase-js"
 import { Button } from "@/components/ui/button"
 import { LogOut, LayoutGrid, Zap } from "lucide-react"
+import { strings } from "@/lib/i18n/strings"
 
 const NAV_LINKS = [
-  { href: "/collection", label: "Samling", icon: LayoutGrid },
-  { href: "/hurtigscan", label: "Hurtigscan", icon: Zap },
+  { href: "/collection", label: strings.nav.collection, icon: LayoutGrid },
+  { href: "/hurtigscan", label: strings.nav.quickScan, icon: Zap },
 ]
 
 export function TopNav({ user }: { user: User }) {
@@ -46,7 +47,9 @@ export function TopNav({ user }: { user: User }) {
                 <circle cx="7" cy="7" r="1.5" fill="white" />
               </svg>
             </div>
-            <span className="font-semibold text-gray-900 text-sm tracking-tight">Studsly</span>
+            <span className="font-semibold text-gray-900 text-sm tracking-tight">
+              {strings.common.appName}
+            </span>
           </Link>
 
           <nav className="flex items-center gap-1">
@@ -83,7 +86,7 @@ export function TopNav({ user }: { user: User }) {
             className="gap-1.5 text-gray-500"
           >
             <LogOut size={14} />
-            <span className="hidden sm:inline">Logg ut</span>
+            <span className="hidden sm:inline">{strings.nav.signOut}</span>
           </Button>
         </div>
       </div>

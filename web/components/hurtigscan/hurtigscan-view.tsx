@@ -3,6 +3,9 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, Zap, ChevronRight, ArrowLeft, MapPin, X } from "lucide-react"
+import { strings } from "@/lib/i18n/strings"
+
+const t = strings.hurtigscan
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,21 +62,8 @@ interface HsSession {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CONDITIONS: Record<string, string> = {
-  SEALED: "Forseglet",
-  OPENED: "Ubygget (åpnet)",
-  BUILT: "Bygget",
-  USED: "Brukt",
-  INCOMPLETE: "Ufullstendig",
-}
-
-const WEAR_LEVELS: Record<string, string> = {
-  MINT: "Som ny",
-  NEAR_MINT: "Nesten som ny",
-  VERY_GOOD: "Meget god",
-  GOOD: "God",
-  FAIR: "Akseptabel",
-}
+const CONDITIONS = t.conditions
+const WEAR_LEVELS = t.wearLevels
 
 const WEAR_RELEVANT = new Set(["OPENED", "BUILT", "USED", "INCOMPLETE"])
 
@@ -166,7 +156,7 @@ export function HurtigscanView() {
           screen: data.screen,
         })
       } catch {
-        setError("Klarte ikke å analysere bildet. Prøv igjen.")
+        setError(t.analyzeFailed)
         update({ screen: 2 })
       } finally {
         setLoading(false)
@@ -189,7 +179,7 @@ export function HurtigscanView() {
       const data = await res.json()
       update({ searchResults: data.results ?? [], searchQuery: query, screen: 5 })
     } catch {
-      setError("Søket feilet. Prøv igjen.")
+      setError(t.searchFailed)
     } finally {
       setLoading(false)
     }
@@ -236,8 +226,8 @@ export function HurtigscanView() {
         screen: 4,
       })
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Ukjent feil"
-      setError(`Lagring feilet: ${msg}`)
+      const msg = e instanceof Error ? e.message : t.unknownError
+      setError(t.saveFailed(msg))
     } finally {
       setLoading(false)
     }
@@ -373,16 +363,16 @@ function Screen1({
     <div>
       <div className="flex items-center gap-2 mb-2">
         <Zap size={20} className="text-[#2E5FA3]" />
-        <h1 className="text-xl font-semibold text-gray-900">Hurtigscan</h1>
+        <h1 className="text-xl font-semibold text-gray-900">{t.title}</h1>
       </div>
       <p className="text-sm text-gray-500 mb-6">
-        Lokasjonen du velger gjelder for alle objekter i denne sesjonen.
+        {t.intro}
       </p>
 
       {/* Mode selector */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Hva skal registreres?
+          {t.modeLabel}
         </label>
         <div className="flex gap-2">
           {(["SET", "MINIFIG"] as Mode[]).map((m) => (
@@ -395,7 +385,7 @@ function Screen1({
                   : "bg-white text-gray-700 border-gray-200 hover:border-[#2E5FA3]/40"
               }`}
             >
-              {m === "SET" ? "🧱 Sett" : "👾 Minifig"}
+              {m === "SET" ? t.modeSet : t.modeMinifig}
             </button>
           ))}
         </div>
@@ -404,13 +394,13 @@ function Screen1({
       {/* Location pickers */}
       <div className="mb-5">
         <label className="block text-sm font-medium text-gray-700 mb-3">
-          Velg lokasjon
+          {t.locationLabel}
         </label>
         <div className="grid grid-cols-2 gap-3">
-          {locInput("l1", "Sted", "Bod, Stue, Kontor …", true)}
-          {locInput("l2", "Enhet", "Hylle A, Vitrineskap …")}
-          {locInput("l3", "Posisjon", "1, 2, Rad 2 …")}
-          {locInput("l4", "Beholder", "Eske A, Pose 3 …")}
+          {locInput("l1", t.locationFields.place, t.locationFields.placeHint, true)}
+          {locInput("l2", t.locationFields.unit, t.locationFields.unitHint)}
+          {locInput("l3", t.locationFields.position, t.locationFields.positionHint)}
+          {locInput("l4", t.locationFields.container, t.locationFields.containerHint)}
         </div>
       </div>
 
@@ -421,11 +411,11 @@ function Screen1({
       )}
 
       <Button onClick={() => update({ screen: 2 })} disabled={!hasL1} className="w-full">
-        Start registrering
+        {t.start}
       </Button>
       {!hasL1 && (
         <p className="text-xs text-gray-400 text-center mt-2">
-          Sted er obligatorisk for å starte
+          {t.placeRequired}
         </p>
       )}
     </div>
@@ -452,11 +442,9 @@ function Screen2({
   const [query, setQuery] = useState("")
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const modeLabel = session.mode === "SET" ? "sett" : "minifig"
+  const modeLabel = session.mode === "SET" ? t.modeSetWord : t.modeMinifigWord
   const placeholder =
-    session.mode === "SET"
-      ? "Settnummer eller navn (norsk støttes) …"
-      : "Figurkode eller navn (f.eks. 'sw0001' eller 'Darth Vader') …"
+    session.mode === "SET" ? t.searchSetPlaceholder : t.searchMinifigPlaceholder
 
   return (
     <div>
@@ -468,32 +456,32 @@ function Screen2({
             onClick={() => update({ screen: 1 })}
             className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100"
           >
-            Endre
+            {t.change}
           </button>
           <button
             onClick={onEnd}
             className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100"
           >
-            Avslutt
+            {t.end}
           </button>
         </div>
       </div>
       <hr className="border-gray-100 mb-5" />
 
       {/* Image upload area */}
-      <p className="text-sm font-medium text-gray-700 mb-2">📷 Skann {modeLabel}</p>
+      <p className="text-sm font-medium text-gray-700 mb-2">{t.scanPrompt(modeLabel)}</p>
       <button
         onClick={() => fileRef.current?.click()}
         disabled={loading}
         className="w-full border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-[#2E5FA3]/40 hover:bg-[#2E5FA3]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? (
-          <span className="text-sm text-gray-500">Analyserer bilde …</span>
+          <span className="text-sm text-gray-500">{t.analyzing}</span>
         ) : (
           <>
             <div className="text-3xl mb-1">📷</div>
-            <p className="text-sm text-gray-600">Ta bilde eller velg fra bibliotek</p>
-            <p className="text-xs text-gray-400 mt-1">JPG · PNG · WebP</p>
+            <p className="text-sm text-gray-600">{t.takePhoto}</p>
+            <p className="text-xs text-gray-400 mt-1">{t.imageFormats}</p>
           </>
         )}
       </button>
@@ -512,7 +500,7 @@ function Screen2({
           <div className="w-full border-t border-gray-100" />
         </div>
         <div className="relative flex justify-center">
-          <span className="px-3 bg-gray-50 text-xs text-gray-400">eller søk manuelt</span>
+          <span className="px-3 bg-gray-50 text-xs text-gray-400">{t.orSearchManually}</span>
         </div>
       </div>
 
@@ -531,7 +519,7 @@ function Screen2({
           onClick={() => onSearch(query)}
           disabled={loading || !query.trim()}
         >
-          Søk
+          {t.search}
         </Button>
       </div>
     </div>
@@ -561,11 +549,11 @@ function Screen3({
   const conf = session.aiResult?.confidence
   const confLabel =
     conf === "high"
-      ? "Bildekvalitet: God"
+      ? t.imageQuality.high
       : conf === "medium"
-        ? "Bildekvalitet: Middels"
+        ? t.imageQuality.medium
         : conf === "low"
-          ? "Bildekvalitet: Lav"
+          ? t.imageQuality.low
           : null
   const confColor =
     conf === "high"
@@ -585,7 +573,7 @@ function Screen3({
           onClick={onEnd}
           className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 shrink-0"
         >
-          Avslutt
+          {t.end}
         </button>
       </div>
       <hr className="border-gray-100 mb-4" />
@@ -601,30 +589,30 @@ function Screen3({
       {/* Images side by side */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div>
-          <p className="text-xs text-gray-400 mb-1.5">Ditt bilde</p>
+          <p className="text-xs text-gray-400 mb-1.5">{t.yourImage}</p>
           {session.imgDataUrl ? (
             <img
               src={session.imgDataUrl}
-              alt="Opplastet"
+              alt={t.yourImage}
               className="w-full rounded-lg object-cover aspect-square"
             />
           ) : (
             <div className="w-full rounded-lg bg-gray-100 aspect-square flex items-center justify-center text-gray-400 text-sm">
-              Ingen bilde
+              {t.noImage}
             </div>
           )}
         </div>
         <div>
-          <p className="text-xs text-gray-400 mb-1.5">Referansebilde</p>
+          <p className="text-xs text-gray-400 mb-1.5">{t.referenceImage}</p>
           {sd.set_img_url ? (
             <img
               src={sd.set_img_url}
-              alt="Referanse"
+              alt={t.referenceImage}
               className="w-full rounded-lg object-contain aspect-square bg-gray-50"
             />
           ) : (
             <div className="w-full rounded-lg bg-gray-100 aspect-square flex items-center justify-center text-gray-400 text-sm">
-              Ingen bilde
+              {t.noImage}
             </div>
           )}
         </div>
@@ -634,7 +622,7 @@ function Screen3({
       <div className="mb-4">
         <h2 className="text-base font-semibold text-gray-900">{sd.name}</h2>
         <p className="text-sm text-gray-500">
-          {[sd.set_num, sd.year, sd.num_parts ? `${sd.num_parts} deler` : null]
+          {[sd.set_num, sd.year, sd.num_parts ? t.partsSuffix(sd.num_parts) : null]
             .filter(Boolean)
             .join(" · ")}
         </p>
@@ -643,7 +631,7 @@ function Screen3({
       {/* Condition + Wear */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Tilstand</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">{t.conditionLabel}</label>
           <select
             value={session.condition}
             onChange={(e) => update({ condition: e.target.value })}
@@ -657,14 +645,14 @@ function Screen3({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Slitasje</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">{t.wearLabel}</label>
           <select
             value={showWear ? (session.wearLevel ?? "") : ""}
             onChange={(e) => update({ wearLevel: e.target.value || null })}
             disabled={!showWear}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5FA3]/30 disabled:opacity-40 disabled:bg-gray-50"
           >
-            <option value="">– Ikke satt –</option>
+            <option value="">{t.wearNotSet}</option>
             {Object.entries(WEAR_LEVELS).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
@@ -682,10 +670,10 @@ function Screen3({
           disabled={loading}
           className="flex-1"
         >
-          Korriger
+          {t.correct}
         </Button>
         <Button onClick={onSave} disabled={loading} className="flex-[2]">
-          {loading ? "Lagrer …" : "OK →"}
+          {loading ? t.saving : t.confirm}
         </Button>
       </div>
     </div>
@@ -711,14 +699,14 @@ function Screen4({
       <h2 className="text-xl font-bold text-gray-900 mb-1">{session.lastSetName}</h2>
       <p className="text-sm text-gray-500 mb-1">📍 {buildLocStr(session.loc)}</p>
       <p className="text-sm font-semibold text-[#2E5FA3] mb-10">
-        Registrert som {session.lastOwnershipId}
+        {t.registeredAs(session.lastOwnershipId ?? "")}
       </p>
       <div className="flex gap-3">
         <Button variant="outline" onClick={onEnd} className="flex-1">
-          Avslutt
+          {t.end}
         </Button>
         <Button onClick={onNext} className="flex-[2]">
-          Registrer neste
+          {t.registerNext}
         </Button>
       </div>
     </div>
@@ -745,11 +733,9 @@ function Screen5({
 }) {
   const [query, setQuery] = useState(session.searchQuery ?? "")
 
-  const objLabel = session.mode === "SET" ? "settet" : "minifiguren"
+  const objLabel = session.mode === "SET" ? t.modeSetObject : t.modeMinifigObject
   const placeholder =
-    session.mode === "SET"
-      ? "Settnummer eller navn (f.eks. 'Ringenes Herre') …"
-      : "Figurkode eller navn (f.eks. 'sw0001' eller 'Darth Vader') …"
+    session.mode === "SET" ? t.searchSetPlaceholder : t.searchMinifigPlaceholder
 
   return (
     <div>
@@ -760,7 +746,7 @@ function Screen5({
           onClick={onEnd}
           className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 shrink-0"
         >
-          Avslutt
+          {t.end}
         </button>
       </div>
       <hr className="border-gray-100 mb-5" />
@@ -772,13 +758,11 @@ function Screen5({
             alt=""
             className="w-12 h-12 rounded object-cover shrink-0"
           />
-          <p className="text-sm text-amber-800">
-            Vi gjenkjente ikke {objLabel} fra bildet. Søk manuelt nedenfor.
-          </p>
+          <p className="text-sm text-amber-800">{t.notRecognized(objLabel)}</p>
         </div>
       )}
 
-      <p className="text-sm font-medium text-gray-700 mb-2">Søk etter {objLabel}</p>
+      <p className="text-sm font-medium text-gray-700 mb-2">{t.searchFor(objLabel)}</p>
       <div className="flex gap-2 mb-5">
         <input
           type="text"
@@ -790,17 +774,15 @@ function Screen5({
           className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5FA3]/30 focus:border-[#2E5FA3] disabled:opacity-50"
         />
         <Button onClick={() => onSearch(query)} disabled={loading || !query.trim()}>
-          Søk
+          {t.search}
         </Button>
       </div>
 
       {/* No results */}
       {session.searchResults !== null && session.searchResults.length === 0 && (
         <div className="text-center py-6 text-gray-500">
-          <p className="text-sm font-medium">Ikke funnet.</p>
-          <p className="text-xs text-gray-400 mt-1">
-            Dette ble ikke lagret. Prøv et annet søkeord.
-          </p>
+          <p className="text-sm font-medium">{t.notFound}</p>
+          <p className="text-xs text-gray-400 mt-1">{t.notFoundHint}</p>
         </div>
       )}
 
@@ -808,7 +790,7 @@ function Screen5({
       {session.searchResults && session.searchResults.length > 0 && (
         <div>
           <p className="text-xs text-gray-500 mb-3">
-            {session.searchResults.length} treff — velg riktig {objLabel}:
+            {t.resultCount(session.searchResults.length, objLabel)}
           </p>
           <div className="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
             {session.searchResults.map((r) => (
@@ -829,7 +811,7 @@ function Screen5({
                   <p className="text-xs text-gray-500">
                     {r.set_num}
                     {r.year ? ` · ${r.year}` : ""}
-                    {r.num_parts ? ` · ${r.num_parts} deler` : ""}
+                    {r.num_parts ? ` · ${t.partsSuffix(r.num_parts)}` : ""}
                   </p>
                 </div>
                 <Button
@@ -838,7 +820,7 @@ function Screen5({
                   onClick={() => onPick(r)}
                   disabled={loading}
                 >
-                  Velg
+                  {t.choose}
                 </Button>
               </div>
             ))}
@@ -851,7 +833,7 @@ function Screen5({
         className="flex items-center gap-1.5 mt-5 text-sm text-gray-500 hover:text-gray-700"
       >
         <ArrowLeft size={14} />
-        Tilbake til skanning
+        {t.backToScanning}
       </button>
     </div>
   )

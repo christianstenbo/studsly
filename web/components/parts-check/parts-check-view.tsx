@@ -25,9 +25,11 @@ import type {
   ResolvedSetInfo,
   SparePart,
 } from '@/lib/types/parts'
-import { MINIFIG_SOURCE_LABELS } from '@/lib/types/parts'
+import { strings } from '@/lib/i18n/strings'
 
-// ─── Typer ────────────────────────────────────────────────────────────────────
+const t = strings.partsCheck
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Tab = 'ALL' | 'MISSING' | 'SPARES'
 type SortField = 'part_name' | 'color_name' | 'qty_expected' | 'qty_missing'
@@ -48,7 +50,7 @@ interface PartsCheckViewProps {
   blColors: BlColorMap
 }
 
-/** Det som vises i delbilde-popupen. */
+/** What the part detail popup shows. */
 interface PartDetail {
   imgUrl: string | null
   name: string
@@ -60,9 +62,9 @@ interface PartDetail {
   qtyPresent?: number
 }
 
-// ─── Hjelpere ─────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const nf = new Intl.NumberFormat('nb-NO')
+const nf = new Intl.NumberFormat('en-US')
 
 function clamp(value: number, max: number): number {
   if (Number.isNaN(value)) return 0
@@ -77,7 +79,7 @@ function figLabel(fig: { fig_name: string | null; fig_num: string }): string {
   return fig.fig_name ?? fig.fig_num
 }
 
-// ─── Bilder ───────────────────────────────────────────────────────────────────
+// ─── Images ───────────────────────────────────────────────────────────────────
 
 function PartThumb({
   src,
@@ -113,7 +115,7 @@ function PartThumb({
   return (
     <button
       onClick={onClick}
-      title="Vis større"
+      title={t.detail.enlarge}
       className="rounded hover:ring-2 hover:ring-[#2E5FA3]/40 transition-shadow"
     >
       {img}
@@ -121,7 +123,7 @@ function PartThumb({
   )
 }
 
-/** Popup med stort bilde og nøkkelinfo om delen. */
+/** Popup with a large image and key facts about the part. */
 function PartDetailDialog({
   detail,
   onClose,
@@ -156,7 +158,7 @@ function PartDetailDialog({
           <button
             onClick={onClose}
             className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-            aria-label="Lukk"
+            aria-label={t.detail.close}
           >
             <X size={16} />
           </button>
@@ -172,28 +174,30 @@ function PartDetailDialog({
             />
           ) : (
             <div className="h-40 flex items-center justify-center text-sm text-gray-400">
-              Ingen bilde tilgjengelig
+              {t.detail.noImage}
             </div>
           )}
         </div>
 
         <dl className="px-5 py-4 text-sm grid grid-cols-2 gap-y-2">
-          <dt className="text-gray-500">Farge</dt>
-          <dd className="text-gray-900 text-right">{detail.colorName ?? '–'}</dd>
+          <dt className="text-gray-500">{t.detail.color}</dt>
+          <dd className="text-gray-900 text-right">
+            {detail.colorName ?? strings.common.none}
+          </dd>
 
-          <dt className="text-gray-500">BrickLink-farge</dt>
+          <dt className="text-gray-500">{t.detail.blColor}</dt>
           <dd className="text-gray-900 text-right">
             {detail.blColorId != null
               ? `${detail.blColorName} (${detail.blColorId})`
-              : '–'}
+              : strings.common.none}
           </dd>
 
-          <dt className="text-gray-500">Skal ha</dt>
+          <dt className="text-gray-500">{t.detail.expected}</dt>
           <dd className="text-gray-900 text-right tabular-nums">{detail.qtyExpected}</dd>
 
           {detail.qtyPresent !== undefined && (
             <>
-              <dt className="text-gray-500">Har</dt>
+              <dt className="text-gray-500">{t.detail.have}</dt>
               <dd className="text-gray-900 text-right tabular-nums">{detail.qtyPresent}</dd>
             </>
           )}
@@ -203,7 +207,7 @@ function PartDetailDialog({
   )
 }
 
-// ─── Sorteringsikon ───────────────────────────────────────────────────────────
+// ─── Sort icon ───────────────────────────────────────────────────────────
 
 function SortIcon({
   field,
@@ -222,7 +226,7 @@ function SortIcon({
   )
 }
 
-// ─── Kopieringsknapp ──────────────────────────────────────────────────────────
+// ─── Copy button ──────────────────────────────────────────────────────────
 
 function CopyButton({
   label,
@@ -237,8 +241,8 @@ function CopyButton({
 
   useEffect(() => {
     if (!copied) return
-    const t = setTimeout(() => setCopied(false), 2000)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(timer)
   }, [copied])
 
   return (
@@ -251,18 +255,18 @@ function CopyButton({
           await navigator.clipboard.writeText(getText())
           setCopied(true)
         } catch {
-          // Utklippstavlen kan være blokkert — ignorer stille
+          // The clipboard can be blocked — fail silently
         }
       }}
       className="gap-1.5"
     >
       {copied ? <ClipboardCheck size={13} /> : <Clipboard size={13} />}
-      {copied ? 'Kopiert' : label}
+      {copied ? t.copied : label}
     </Button>
   )
 }
 
-// ─── Minifigurblokk ───────────────────────────────────────────────────────────
+// ─── Minifigure block ───────────────────────────────────────────────────────────
 
 function MinifigRow({
   fig,
@@ -287,7 +291,7 @@ function MinifigRow({
         <button
           onClick={onToggle}
           className="p-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-          aria-label={expanded ? 'Skjul deler' : 'Vis deler'}
+          aria-label={expanded ? t.minifigHideParts : t.minifigShowParts}
         >
           {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
         </button>
@@ -301,7 +305,7 @@ function MinifigRow({
               imgUrl: fig.fig_img_url,
               name: figLabel(fig),
               partNum: fig.fig_num,
-              colorName: MINIFIG_SOURCE_LABELS[fig.source],
+              colorName: t.minifigSources[fig.source],
               blColorId: null,
               blColorName: null,
               qtyExpected: fig.qty_expected,
@@ -315,16 +319,16 @@ function MinifigRow({
             <span className="text-gray-900 line-clamp-1">{figLabel(fig)}</span>
             {complete && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">
-                Komplett
+                {t.minifigComplete}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-400">
             <span>{fig.fig_num}</span>
             <span>·</span>
-            <span>{fig.fig_num_parts} deler</span>
+            <span>{t.minifigPartsCount(fig.fig_num_parts)}</span>
             <span>·</span>
-            <span>{MINIFIG_SOURCE_LABELS[fig.source]}</span>
+            <span>{t.minifigSources[fig.source]}</span>
           </div>
         </div>
 
@@ -347,7 +351,7 @@ function MinifigRow({
           <button
             onClick={() => onSetPresent(fig.qty_expected)}
             disabled={complete}
-            title="Har hele figuren"
+            title={t.minifigHaveAll}
             className="p-1 rounded-md text-gray-400 hover:text-[#2E5FA3] hover:bg-gray-100
                        disabled:opacity-30 disabled:hover:bg-transparent"
           >
@@ -360,7 +364,7 @@ function MinifigRow({
         <div className="bg-gray-50/70 px-6 py-2 border-t border-gray-100">
           {parts.length === 0 ? (
             <p className="text-xs text-gray-400 py-2">
-              Ingen delefasit for denne figuren i katalogen.
+              {t.minifigNoParts}
             </p>
           ) : (
             <ul className="divide-y divide-gray-100">
@@ -389,7 +393,7 @@ function MinifigRow({
                       {partLabel(p)}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {p.part_num} · {p.color_name ?? '–'}
+                      {p.part_num} · {p.color_name ?? strings.common.none}
                     </span>
                   </div>
                   <span className="text-sm text-gray-500 tabular-nums">
@@ -405,7 +409,7 @@ function MinifigRow({
   )
 }
 
-// ─── Hovedkomponent ───────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function PartsCheckView({
   objectId,
@@ -443,7 +447,7 @@ export function PartsCheckView({
     }
   }, [])
 
-  // ── Lagring ────────────────────────────────────────────────────────────────
+  // ── Saving ────────────────────────────────────────────────────────────────
 
   const persist = useCallback(
     async (table: 'inventory_parts' | 'object_minifigs', rowId: string, qty: number) => {
@@ -453,7 +457,7 @@ export function PartsCheckView({
         .update({ qty_present: qty })
         .eq('id', rowId)
       setSaving((n) => n - 1)
-      setSaveError(error ? 'Kunne ikke lagre. Sjekk nettforbindelsen.' : null)
+      setSaveError(error ? strings.common.saveFailed : null)
     },
     [supabase]
   )
@@ -500,12 +504,12 @@ export function PartsCheckView({
         p_full: full,
       })
       setSaving((n) => n - 1)
-      setSaveError(error ? 'Kunne ikke lagre. Sjekk nettforbindelsen.' : null)
+      setSaveError(error ? strings.common.saveFailed : null)
     },
     [objectId, supabase]
   )
 
-  // ── Kompletthet (løse deler + minifigurdeler) ──────────────────────────────
+  // ── Completeness (loose parts + minifigure parts) ──────────────────────────────
 
   const stats = useMemo(() => {
     let looseExpected = 0
@@ -545,7 +549,7 @@ export function PartsCheckView({
     }
   }, [rows, figs])
 
-  // ── Filtrering + sortering ─────────────────────────────────────────────────
+  // ── Filtering + sorting ─────────────────────────────────────────────────
 
   const query = search.trim().toLowerCase()
 
@@ -583,8 +587,8 @@ export function PartsCheckView({
       }
       if (valA < valB) return sortDir === 'asc' ? -1 : 1
       if (valA > valB) return sortDir === 'asc' ? 1 : -1
-      // Sekundærsortering: farge-modus grupperer på delnavn og omvendt,
-      // slik at like rader alltid havner ved siden av hverandre
+      // Secondary sort: color mode groups by part name and vice versa, so
+      // identical rows always land next to each other
       return sortField === 'color_name'
         ? partLabel(a).localeCompare(partLabel(b))
         : a.color_name.localeCompare(b.color_name)
@@ -637,7 +641,7 @@ export function PartsCheckView({
     })
   }
 
-  // ── Want list-eksport ──────────────────────────────────────────────────────
+  // ── Want list export ──────────────────────────────────────────────────────
 
   const missingRows = useMemo(
     () => rows.filter((r) => r.qty_present < r.qty_expected),
@@ -651,7 +655,7 @@ export function PartsCheckView({
           const bl = blColors[r.color_id]
           const blPart = bl?.bl_color_name
             ? `${bl.bl_color_name} (BL ${bl.bl_color_id})`
-            : `${r.color_name} (ingen BL-farge)`
+            : `${r.color_name} (${t.noBlColor})`
           return `${r.qty_expected - r.qty_present}x ${r.part_num} — ${partLabel(r)} — ${blPart}`
         })
         .join('\n'),
@@ -678,14 +682,14 @@ export function PartsCheckView({
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 flex flex-col">
-      {/* ── Topp: settbilde + nøkkelinfo ───────────────────────────────── */}
+      {/* ── Header: set image + key facts ───────────────────────────────── */}
       <div className="px-6 pt-5 pb-4 border-b border-gray-100">
         <Link
           href="/collection"
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"
         >
           <ArrowLeft size={14} />
-          Tilbake til samlingen
+          {t.back}
         </Link>
 
         <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
@@ -700,27 +704,27 @@ export function PartsCheckView({
             )}
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                Delsjekk
+                {t.eyebrow}
               </p>
               <h1 className="text-2xl font-semibold text-gray-900 leading-tight mt-0.5">
                 {setName}
               </h1>
               {metaLine && <p className="text-sm text-gray-500 mt-0.5">{metaLine}</p>}
               <p className="text-sm text-gray-600 mt-1.5">
-                {nf.format(stats.looseExpected)} deler
+                {t.partsCount(nf.format(stats.looseExpected))}
                 {stats.figsExpected > 0 && (
                   <>
                     {' · '}
                     <span className="inline-flex items-center gap-1">
                       <User size={12} className="text-gray-400" />
-                      {nf.format(stats.figsExpected)} minifigurer
+                      {t.minifigCount(nf.format(stats.figsExpected))}
                     </span>
                   </>
                 )}
               </p>
               {resolved.rb_set_num && (
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Rebrickable: {resolved.rb_set_num}
+                  {t.catalogRef(resolved.rb_set_num)}
                   {resolved.rb_name && ` — ${resolved.rb_name}`}
                 </p>
               )}
@@ -730,25 +734,28 @@ export function PartsCheckView({
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setAll(true)} className="gap-1.5">
               <Check size={13} />
-              Har alle
+              {t.haveAll}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setAll(false)} className="gap-1.5">
               <RotateCcw size={13} />
-              Nullstill
+              {t.reset}
             </Button>
           </div>
         </div>
 
-        {/* Kompletthet */}
+        {/* Completeness */}
         <div className="mt-4">
           <div className="flex items-end justify-between mb-1.5">
             <span className="text-3xl font-semibold text-gray-900 tabular-nums">
-              {stats.percent.toFixed(1).replace('.', ',')} %
+              {stats.percent.toFixed(1)}%
             </span>
             <span className="text-sm text-gray-500 tabular-nums">
-              {nf.format(stats.present)} av {nf.format(stats.expected)} brikker
+              {t.piecesOf(nf.format(stats.present), nf.format(stats.expected))}
               {stats.figsExpected > 0 &&
-                ` · ${nf.format(stats.figsPresent)}/${nf.format(stats.figsExpected)} figurer`}
+                ` · ${t.figuresOf(
+                  nf.format(stats.figsPresent),
+                  nf.format(stats.figsExpected)
+                )}`}
             </span>
           </div>
           <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -759,23 +766,25 @@ export function PartsCheckView({
           </div>
           <div className="mt-1.5 flex items-center gap-3 text-xs text-gray-400">
             <span>
-              Mangler {nf.format(stats.missing)} brikker i {nf.format(stats.lotsMissing)}{' '}
-              deletyper
+              {t.missingSummary(
+                nf.format(stats.missing),
+                nf.format(stats.lotsMissing)
+              )}
             </span>
-            {saving > 0 && <span className="text-gray-500">Lagrer…</span>}
+            {saving > 0 && <span className="text-gray-500">{strings.common.saving}</span>}
             {saveError && <span className="text-red-500">{saveError}</span>}
           </div>
         </div>
       </div>
 
-      {/* ── Faner + søk + sortering ────────────────────────────────────── */}
+      {/* ── Tabs + search + sorting ────────────────────────────────────── */}
       <div className="px-6 py-3 border-b border-gray-100 flex flex-wrap items-center gap-3 justify-between">
         <div className="flex items-center gap-1">
           {(
             [
-              ['ALL', 'Deleliste', rows.length + figs.length],
-              ['MISSING', 'Mangler', stats.lotsMissing],
-              ['SPARES', 'Reservedeler', spares.length],
+              ['ALL', t.tabs.all, rows.length + figs.length],
+              ['MISSING', t.tabs.missing, stats.lotsMissing],
+              ['SPARES', t.tabs.spares, spares.length],
             ] as [Tab, string, number][]
           ).map(([key, label, count]) => (
             <button
@@ -798,13 +807,13 @@ export function PartsCheckView({
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Sortering à la BrickLink: etter delnavn eller etter farge */}
+          {/* BrickLink-style sorting: by part name or by color */}
           {tab !== 'SPARES' && (
             <div className="flex items-center rounded-lg border border-gray-200 p-0.5">
               {(
                 [
-                  ['part_name', 'Navn'],
-                  ['color_name', 'Farge'],
+                  ['part_name', t.sortBy.name],
+                  ['color_name', t.sortBy.color],
                 ] as [SortField, string][]
               ).map(([field, label]) => (
                 <button
@@ -830,7 +839,7 @@ export function PartsCheckView({
             />
             <input
               type="text"
-              placeholder="Søk på del, nummer, farge…"
+              placeholder={t.searchPlaceholder}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg
@@ -841,19 +850,19 @@ export function PartsCheckView({
         </div>
       </div>
 
-      {/* ── Want list-eksport ──────────────────────────────────────────── */}
+      {/* ── Want list export ──────────────────────────────────────────── */}
       {tab === 'MISSING' && (
         <div className="px-6 py-3 border-b border-gray-100 flex flex-wrap items-center gap-2">
           <span className="text-xs text-gray-500 mr-1">
-            Handleliste ({nf.format(missingRows.length)} deletyper):
+            {t.wantListLabel(nf.format(missingRows.length))}
           </span>
           <CopyButton
-            label="Kopier som tekst"
+            label={t.copyAsText}
             getText={wantListText}
             disabled={missingRows.length === 0}
           />
           <CopyButton
-            label="Kopier BrickLink-XML"
+            label={t.copyBrickLinkXml}
             getText={wantListXml}
             disabled={missingRows.length === 0}
           />
@@ -861,12 +870,12 @@ export function PartsCheckView({
       )}
 
       <div className="overflow-auto max-h-[calc(100vh-26rem)]">
-        {/* ── Minifigurer ────────────────────────────────────────────── */}
+        {/* ── Minifigures ────────────────────────────────────────────── */}
         {tab === 'ALL' && visibleFigs.length > 0 && (
           <div className="border-b border-gray-100">
             <div className="px-6 py-2 bg-gray-50/70 flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
               <User size={12} />
-              Minifigurer ({nf.format(visibleFigs.length)})
+              {t.minifigsHeading} ({nf.format(visibleFigs.length)})
             </div>
             {visibleFigs.map((fig) => (
               <MinifigRow
@@ -882,7 +891,7 @@ export function PartsCheckView({
           </div>
         )}
 
-        {/* ── Deler ──────────────────────────────────────────────────── */}
+        {/* ── Parts ──────────────────────────────────────────────────── */}
         {tab === 'SPARES' ? (
           <SparesTable spares={visibleSpares} onShowPart={setDetail} />
         ) : (
@@ -895,7 +904,7 @@ export function PartsCheckView({
                     onClick={() => toggleSort('part_name')}
                     className="flex items-center hover:text-gray-800"
                   >
-                    Del
+                    {t.columns.part}
                     <SortIcon field="part_name" active={sortField} dir={sortDir} />
                   </button>
                 </th>
@@ -904,7 +913,7 @@ export function PartsCheckView({
                     onClick={() => toggleSort('color_name')}
                     className="flex items-center hover:text-gray-800"
                   >
-                    Farge
+                    {t.columns.color}
                     <SortIcon field="color_name" active={sortField} dir={sortDir} />
                   </button>
                 </th>
@@ -913,17 +922,17 @@ export function PartsCheckView({
                     onClick={() => toggleSort('qty_expected')}
                     className="flex items-center justify-end hover:text-gray-800 ml-auto"
                   >
-                    Skal ha
+                    {t.columns.expected}
                     <SortIcon field="qty_expected" active={sortField} dir={sortDir} />
                   </button>
                 </th>
-                <th className="text-right px-3 py-3 font-medium text-gray-500 w-32">Har</th>
+                <th className="text-right px-3 py-3 font-medium text-gray-500 w-32">{t.columns.have}</th>
                 <th className="text-right px-6 py-3 font-medium text-gray-500 hidden md:table-cell">
                   <button
                     onClick={() => toggleSort('qty_missing')}
                     className="flex items-center justify-end hover:text-gray-800 ml-auto"
                   >
-                    Mangler
+                    {t.columns.missing}
                     <SortIcon field="qty_missing" active={sortField} dir={sortDir} />
                   </button>
                 </th>
@@ -933,9 +942,7 @@ export function PartsCheckView({
               {visibleRows.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                    {tab === 'MISSING'
-                      ? 'Ingen deler mangler. 🎉'
-                      : 'Ingen deler matcher søket.'}
+                    {tab === 'MISSING' ? t.nothingMissing : t.noPartsMatch}
                   </td>
                 </tr>
               )}
@@ -976,7 +983,7 @@ export function PartsCheckView({
                           <span className="text-xs text-gray-400">
                             {bl?.bl_color_id != null
                               ? `BL ${bl.bl_color_id} · ${bl.bl_color_name}`
-                              : 'ingen BL-farge'}
+                              : t.noBlColorParen}
                           </span>
                         )}
                       </div>
@@ -1005,7 +1012,7 @@ export function PartsCheckView({
                         <button
                           onClick={() => setPartPresent(row.id, row.qty_expected)}
                           disabled={missing === 0}
-                          title="Har alle av denne"
+                          title={t.haveAllOfThis}
                           className="p-1 rounded-md text-gray-400 hover:text-[#2E5FA3] hover:bg-gray-100
                                      disabled:opacity-30 disabled:hover:bg-transparent"
                         >
@@ -1028,15 +1035,16 @@ export function PartsCheckView({
         )}
       </div>
 
-      {/* ── Bunn ───────────────────────────────────────────────────────── */}
+      {/* ── Footer ───────────────────────────────────────────────────────── */}
       <div className="px-6 py-2.5 border-t border-gray-100 text-xs text-gray-400">
         {tab === 'SPARES'
-          ? `${nf.format(visibleSpares.length)} reservedeler (teller ikke mot kompletthet)`
-          : `Viser ${nf.format(visibleRows.length)} deletyper${
-              tab === 'ALL' && visibleFigs.length > 0
-                ? ` og ${nf.format(visibleFigs.length)} minifigurer`
-                : ''
-            }`}
+          ? t.footer.spares(nf.format(visibleSpares.length))
+          : tab === 'ALL' && visibleFigs.length > 0
+            ? t.footer.partsAndFigs(
+                nf.format(visibleRows.length),
+                nf.format(visibleFigs.length)
+              )
+            : t.footer.parts(nf.format(visibleRows.length))}
       </div>
 
       {detail && <PartDetailDialog detail={detail} onClose={() => setDetail(null)} />}
@@ -1044,7 +1052,7 @@ export function PartsCheckView({
   )
 }
 
-// ─── Reservedeler ─────────────────────────────────────────────────────────────
+// ─── Spare parts ─────────────────────────────────────────────────────────────
 
 function SparesTable({
   spares,
@@ -1058,18 +1066,20 @@ function SparesTable({
       <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
         <tr>
           <th className="w-16 px-6 py-3"></th>
-          <th className="text-left px-3 py-3 font-medium text-gray-500">Del</th>
+          <th className="text-left px-3 py-3 font-medium text-gray-500">{t.columns.part}</th>
           <th className="text-left px-3 py-3 font-medium text-gray-500 hidden sm:table-cell">
-            Farge
+            {t.columns.color}
           </th>
-          <th className="text-right px-6 py-3 font-medium text-gray-500">Antall</th>
+          <th className="text-right px-6 py-3 font-medium text-gray-500">
+            {t.columns.quantity}
+          </th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-50">
         {spares.length === 0 && (
           <tr>
             <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
-              Dette settet har ingen registrerte reservedeler.
+              {t.noSpares}
             </td>
           </tr>
         )}
@@ -1100,7 +1110,7 @@ function SparesTable({
               </div>
             </td>
             <td className="px-3 py-2 hidden sm:table-cell text-gray-700">
-              {s.color_name ?? '–'}
+              {s.color_name ?? strings.common.none}
             </td>
             <td className="px-6 py-2 text-right text-gray-600 tabular-nums">
               {s.qty_expected}
