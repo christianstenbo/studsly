@@ -3,7 +3,13 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, PackageX } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { PartsCheckView } from '@/components/parts-check/parts-check-view'
-import type { BlColorMap, InventoryPart, SparePart } from '@/lib/types/parts'
+import type {
+  BlColorMap,
+  InventoryPart,
+  MinifigPart,
+  ObjectMinifig,
+  SparePart,
+} from '@/lib/types/parts'
 
 export const metadata = {
   title: 'Delsjekk – Studsly',
@@ -67,7 +73,7 @@ export default async function PartsCheckPage({
 
   const { data: obj } = await supabase
     .from('objects')
-    .select('id, object_type, set_number, name, name_bl, theme, year')
+    .select('id, object_type, set_number, name, name_bl, theme, year, image_filename')
     .eq('id', id)
     .maybeSingle()
 
@@ -88,7 +94,7 @@ export default async function PartsCheckPage({
   // Ved flere inventarversjoner velges den høyeste.
   const { data: resolved } = await supabase
     .from('v_owned_set_resolved')
-    .select('rb_set_num, inventory_id')
+    .select('rb_set_num, inventory_id, rb_name, rb_year, rb_num_parts, rb_img_url')
     .eq('object_id', id)
     .maybeSingle()
 
@@ -117,7 +123,7 @@ export default async function PartsCheckPage({
     )
   }
 
-  const [parts, spares, colorMapRows, rbColorRows] = await Promise.all([
+  const [parts, spares, minifigs, figParts, colorMapRows, rbColorRows] = await Promise.all([
     fetchAllPages<InventoryPart>((from, to) =>
       supabase
         .from('inventory_parts')
@@ -138,6 +144,14 @@ export default async function PartsCheckPage({
         .order('part_num')
         .range(from, to)
     ),
+    supabase
+      .from('object_minifigs')
+      .select(
+        'id, fig_num, fig_name, fig_img_url, fig_num_parts, qty_expected, qty_present, is_assembled, source'
+      )
+      .eq('object_id', id)
+      .order('fig_name'),
+    supabase.rpc('object_minifig_parts', { p_object_id: id }),
     supabase.from('color_map').select('rb_color_id, bl_color_id, bl_color_name'),
     supabase.from('rb_colors').select('id, bl_color_id, bl_color_name'),
   ])
@@ -158,16 +172,31 @@ export default async function PartsCheckPage({
     }
   }
 
+  // Eget bilde av objektet går foran katalogbildet
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+  const setImageUrl = obj.image_filename
+    ? `${supabaseUrl}/storage/v1/object/public/object-images/${obj.image_filename}`
+    : resolved.rb_img_url
+
   return (
     <PartsCheckView
       objectId={id}
       setName={setName}
       setNumber={obj.set_number}
-      rbSetNum={resolved.rb_set_num}
       theme={obj.theme}
-      year={obj.year}
+      year={obj.year ?? resolved.rb_year}
+      setImageUrl={setImageUrl}
+      resolved={{
+        rb_set_num: resolved.rb_set_num,
+        rb_name: resolved.rb_name,
+        rb_year: resolved.rb_year,
+        rb_num_parts: resolved.rb_num_parts,
+        rb_img_url: resolved.rb_img_url,
+      }}
       parts={parts}
       spares={spares}
+      minifigs={(minifigs.data as ObjectMinifig[]) ?? []}
+      figParts={(figParts.data as MinifigPart[]) ?? []}
       blColors={blColors}
     />
   )

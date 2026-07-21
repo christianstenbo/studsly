@@ -6,15 +6,26 @@ import {
   ArrowLeft,
   Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Clipboard,
   ClipboardCheck,
   RotateCcw,
   Search,
+  User,
+  X,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import type { BlColorMap, InventoryPart, SparePart } from '@/lib/types/parts'
+import type {
+  BlColorMap,
+  InventoryPart,
+  MinifigPart,
+  ObjectMinifig,
+  ResolvedSetInfo,
+  SparePart,
+} from '@/lib/types/parts'
+import { MINIFIG_SOURCE_LABELS } from '@/lib/types/parts'
 
 // ─── Typer ────────────────────────────────────────────────────────────────────
 
@@ -26,12 +37,27 @@ interface PartsCheckViewProps {
   objectId: string
   setName: string
   setNumber: string | null
-  rbSetNum: string | null
   theme: string | null
   year: number | null
+  setImageUrl: string | null
+  resolved: ResolvedSetInfo
   parts: InventoryPart[]
   spares: SparePart[]
+  minifigs: ObjectMinifig[]
+  figParts: MinifigPart[]
   blColors: BlColorMap
+}
+
+/** Det som vises i delbilde-popupen. */
+interface PartDetail {
+  imgUrl: string | null
+  name: string
+  partNum: string
+  colorName: string | null
+  blColorId: number | null
+  blColorName: string | null
+  qtyExpected: number
+  qtyPresent?: number
 }
 
 // ─── Hjelpere ─────────────────────────────────────────────────────────────────
@@ -47,22 +73,133 @@ function partLabel(part: { part_name: string | null; part_num: string }): string
   return part.part_name ?? part.part_num
 }
 
-// ─── Delbilde ─────────────────────────────────────────────────────────────────
+function figLabel(fig: { fig_name: string | null; fig_num: string }): string {
+  return fig.fig_name ?? fig.fig_num
+}
 
-function PartThumb({ src, alt }: { src: string | null; alt: string }) {
+// ─── Bilder ───────────────────────────────────────────────────────────────────
+
+function PartThumb({
+  src,
+  alt,
+  size = 'md',
+  onClick,
+}: {
+  src: string | null
+  alt: string
+  size?: 'md' | 'lg'
+  onClick?: () => void
+}) {
   const [failed, setFailed] = useState(false)
+  const box = size === 'lg' ? 'w-14 h-14' : 'w-10 h-10'
+
   if (!src || failed) {
-    return <div className="w-10 h-10 rounded bg-gray-100 flex-shrink-0" />
+    return <div className={`${box} rounded bg-gray-100 flex-shrink-0`} />
   }
-  return (
+
+  const img = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={alt}
       loading="lazy"
-      className="w-10 h-10 object-contain rounded bg-gray-50 flex-shrink-0"
+      className={`${box} object-contain rounded bg-gray-50 flex-shrink-0`}
       onError={() => setFailed(true)}
     />
+  )
+
+  if (!onClick) return img
+
+  return (
+    <button
+      onClick={onClick}
+      title="Vis større"
+      className="rounded hover:ring-2 hover:ring-[#2E5FA3]/40 transition-shadow"
+    >
+      {img}
+    </button>
+  )
+}
+
+/** Popup med stort bilde og nøkkelinfo om delen. */
+function PartDetailDialog({
+  detail,
+  onClose,
+}: {
+  detail: PartDetail
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b border-gray-100">
+          <div className="pr-4">
+            <h3 className="font-medium text-gray-900 leading-snug">{detail.name}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">{detail.partNum}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+            aria-label="Lukk"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-5 flex justify-center bg-gray-50">
+          {detail.imgUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={detail.imgUrl}
+              alt={detail.name}
+              className="max-h-64 object-contain"
+            />
+          ) : (
+            <div className="h-40 flex items-center justify-center text-sm text-gray-400">
+              Ingen bilde tilgjengelig
+            </div>
+          )}
+        </div>
+
+        <dl className="px-5 py-4 text-sm grid grid-cols-2 gap-y-2">
+          <dt className="text-gray-500">Farge</dt>
+          <dd className="text-gray-900 text-right">{detail.colorName ?? '–'}</dd>
+
+          <dt className="text-gray-500">BrickLink-farge</dt>
+          <dd className="text-gray-900 text-right">
+            {detail.blColorId != null
+              ? `${detail.blColorName} (${detail.blColorId})`
+              : '–'}
+          </dd>
+
+          <dt className="text-gray-500">Skal ha</dt>
+          <dd className="text-gray-900 text-right tabular-nums">{detail.qtyExpected}</dd>
+
+          {detail.qtyPresent !== undefined && (
+            <>
+              <dt className="text-gray-500">Har</dt>
+              <dd className="text-gray-900 text-right tabular-nums">{detail.qtyPresent}</dd>
+            </>
+          )}
+        </dl>
+      </div>
+    </div>
   )
 }
 
@@ -125,31 +262,179 @@ function CopyButton({
   )
 }
 
+// ─── Minifigurblokk ───────────────────────────────────────────────────────────
+
+function MinifigRow({
+  fig,
+  parts,
+  expanded,
+  onToggle,
+  onSetPresent,
+  onShowPart,
+}: {
+  fig: ObjectMinifig
+  parts: MinifigPart[]
+  expanded: boolean
+  onToggle: () => void
+  onSetPresent: (qty: number) => void
+  onShowPart: (detail: PartDetail) => void
+}) {
+  const complete = fig.qty_present >= fig.qty_expected
+
+  return (
+    <div className="border-b border-gray-50 last:border-b-0">
+      <div className="flex items-center gap-3 px-6 py-2.5 hover:bg-gray-50 transition-colors">
+        <button
+          onClick={onToggle}
+          className="p-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+          aria-label={expanded ? 'Skjul deler' : 'Vis deler'}
+        >
+          {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+        </button>
+
+        <PartThumb
+          src={fig.fig_img_url}
+          alt={figLabel(fig)}
+          size="lg"
+          onClick={() =>
+            onShowPart({
+              imgUrl: fig.fig_img_url,
+              name: figLabel(fig),
+              partNum: fig.fig_num,
+              colorName: MINIFIG_SOURCE_LABELS[fig.source],
+              blColorId: null,
+              blColorName: null,
+              qtyExpected: fig.qty_expected,
+              qtyPresent: fig.qty_present,
+            })
+          }
+        />
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-900 line-clamp-1">{figLabel(fig)}</span>
+            {complete && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">
+                Komplett
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span>{fig.fig_num}</span>
+            <span>·</span>
+            <span>{fig.fig_num_parts} deler</span>
+            <span>·</span>
+            <span>{MINIFIG_SOURCE_LABELS[fig.source]}</span>
+          </div>
+        </div>
+
+        <span className="text-sm text-gray-600 tabular-nums">{fig.qty_expected}</span>
+
+        <div className="flex items-center gap-1.5 w-32 justify-end">
+          <input
+            type="number"
+            min={0}
+            max={fig.qty_expected}
+            value={fig.qty_present}
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) =>
+              onSetPresent(clamp(parseInt(e.target.value, 10), fig.qty_expected))
+            }
+            className="w-16 px-2 py-1 text-sm text-right border border-gray-200 rounded-md
+                       tabular-nums focus:outline-none focus:ring-2 focus:ring-blue-500
+                       focus:border-transparent"
+          />
+          <button
+            onClick={() => onSetPresent(fig.qty_expected)}
+            disabled={complete}
+            title="Har hele figuren"
+            className="p-1 rounded-md text-gray-400 hover:text-[#2E5FA3] hover:bg-gray-100
+                       disabled:opacity-30 disabled:hover:bg-transparent"
+          >
+            <Check size={14} />
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="bg-gray-50/70 px-6 py-2 border-t border-gray-100">
+          {parts.length === 0 ? (
+            <p className="text-xs text-gray-400 py-2">
+              Ingen delefasit for denne figuren i katalogen.
+            </p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {parts.map((p, i) => (
+                <li
+                  key={`${p.part_num}-${p.color_id}-${i}`}
+                  className="flex items-center gap-3 py-1.5"
+                >
+                  <PartThumb
+                    src={p.part_img_url}
+                    alt={partLabel(p)}
+                    onClick={() =>
+                      onShowPart({
+                        imgUrl: p.part_img_url,
+                        name: partLabel(p),
+                        partNum: p.part_num,
+                        colorName: p.color_name,
+                        blColorId: null,
+                        blColorName: null,
+                        qtyExpected: p.quantity,
+                      })
+                    }
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-gray-700 line-clamp-1">
+                      {partLabel(p)}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {p.part_num} · {p.color_name ?? '–'}
+                    </span>
+                  </div>
+                  <span className="text-sm text-gray-500 tabular-nums">
+                    {p.quantity}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Hovedkomponent ───────────────────────────────────────────────────────────
 
 export function PartsCheckView({
   objectId,
   setName,
   setNumber,
-  rbSetNum,
   theme,
   year,
+  setImageUrl,
+  resolved,
   parts,
   spares,
+  minifigs,
+  figParts,
   blColors,
 }: PartsCheckViewProps) {
   const [rows, setRows] = useState<InventoryPart[]>(parts)
+  const [figs, setFigs] = useState<ObjectMinifig[]>(minifigs)
   const [tab, setTab] = useState<Tab>('ALL')
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState<SortField>('part_name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [expandedFigs, setExpandedFigs] = useState<Set<string>>(new Set())
+  const [detail, setDetail] = useState<PartDetail | null>(null)
   const [saving, setSaving] = useState(0)
   const [saveError, setSaveError] = useState<string | null>(null)
 
   const supabase = useMemo(() => createClient(), [])
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
-  // Rydd opp ventende lagringer når komponenten forsvinner
   useEffect(() => {
     const pending = timers.current
     return () => {
@@ -161,11 +446,11 @@ export function PartsCheckView({
   // ── Lagring ────────────────────────────────────────────────────────────────
 
   const persist = useCallback(
-    async (rowId: string, qtyPresent: number) => {
+    async (table: 'inventory_parts' | 'object_minifigs', rowId: string, qty: number) => {
       setSaving((n) => n + 1)
       const { error } = await supabase
-        .from('inventory_parts')
-        .update({ qty_present: qtyPresent })
+        .from(table)
+        .update({ qty_present: qty })
         .eq('id', rowId)
       setSaving((n) => n - 1)
       setSaveError(error ? 'Kunne ikke lagre. Sjekk nettforbindelsen.' : null)
@@ -173,29 +458,42 @@ export function PartsCheckView({
     [supabase]
   )
 
-  const setPresent = useCallback(
-    (rowId: string, qtyPresent: number) => {
-      setRows((prev) =>
-        prev.map((r) => (r.id === rowId ? { ...r, qty_present: qtyPresent } : r))
-      )
-      const existing = timers.current.get(rowId)
+  const schedule = useCallback(
+    (table: 'inventory_parts' | 'object_minifigs', rowId: string, qty: number) => {
+      const key = `${table}:${rowId}`
+      const existing = timers.current.get(key)
       if (existing) clearTimeout(existing)
       timers.current.set(
-        rowId,
+        key,
         setTimeout(() => {
-          timers.current.delete(rowId)
-          void persist(rowId, qtyPresent)
+          timers.current.delete(key)
+          void persist(table, rowId, qty)
         }, 400)
       )
     },
     [persist]
   )
 
+  const setPartPresent = useCallback(
+    (rowId: string, qty: number) => {
+      setRows((prev) => prev.map((r) => (r.id === rowId ? { ...r, qty_present: qty } : r)))
+      schedule('inventory_parts', rowId, qty)
+    },
+    [schedule]
+  )
+
+  const setFigPresent = useCallback(
+    (figId: string, qty: number) => {
+      setFigs((prev) => prev.map((f) => (f.id === figId ? { ...f, qty_present: qty } : f)))
+      schedule('object_minifigs', figId, qty)
+    },
+    [schedule]
+  )
+
   const setAll = useCallback(
     async (full: boolean) => {
-      setRows((prev) =>
-        prev.map((r) => ({ ...r, qty_present: full ? r.qty_expected : 0 }))
-      )
+      setRows((prev) => prev.map((r) => ({ ...r, qty_present: full ? r.qty_expected : 0 })))
+      setFigs((prev) => prev.map((f) => ({ ...f, qty_present: full ? f.qty_expected : 0 })))
       setSaving((n) => n + 1)
       const { error } = await supabase.rpc('set_all_parts_present', {
         p_object_id: objectId,
@@ -207,39 +505,59 @@ export function PartsCheckView({
     [objectId, supabase]
   )
 
-  // ── Kompletthet ────────────────────────────────────────────────────────────
+  // ── Kompletthet (løse deler + minifigurdeler) ──────────────────────────────
 
   const stats = useMemo(() => {
-    let expected = 0
-    let present = 0
+    let looseExpected = 0
+    let loosePresent = 0
     let lotsMissing = 0
     for (const r of rows) {
-      expected += r.qty_expected
-      present += Math.min(r.qty_present, r.qty_expected)
+      looseExpected += r.qty_expected
+      loosePresent += Math.min(r.qty_present, r.qty_expected)
       if (r.qty_present < r.qty_expected) lotsMissing++
     }
+
+    let figsExpected = 0
+    let figsPresent = 0
+    let figPiecesExpected = 0
+    let figPiecesPresent = 0
+    for (const f of figs) {
+      const present = Math.min(f.qty_present, f.qty_expected)
+      figsExpected += f.qty_expected
+      figsPresent += present
+      figPiecesExpected += f.qty_expected * f.fig_num_parts
+      figPiecesPresent += present * f.fig_num_parts
+    }
+
+    const expected = looseExpected + figPiecesExpected
+    const present = loosePresent + figPiecesPresent
+
     return {
       expected,
       present,
       missing: expected - present,
       lots: rows.length,
       lotsMissing,
+      looseExpected,
+      figsExpected,
+      figsPresent,
       percent: expected === 0 ? 0 : (present / expected) * 100,
     }
-  }, [rows])
+  }, [rows, figs])
 
   // ── Filtrering + sortering ─────────────────────────────────────────────────
+
+  const query = search.trim().toLowerCase()
 
   const visibleRows = useMemo(() => {
     let result = tab === 'MISSING' ? rows.filter((r) => r.qty_present < r.qty_expected) : rows
 
-    const q = search.trim().toLowerCase()
-    if (q) {
+    if (query) {
       result = result.filter(
         (r) =>
-          (r.part_name ?? '').toLowerCase().includes(q) ||
-          r.part_num.toLowerCase().includes(q) ||
-          r.color_name.toLowerCase().includes(q)
+          (r.part_name ?? '').toLowerCase().includes(query) ||
+          r.part_num.toLowerCase().includes(query) ||
+          r.color_name.toLowerCase().includes(query)
       )
     }
 
@@ -265,20 +583,42 @@ export function PartsCheckView({
       }
       if (valA < valB) return sortDir === 'asc' ? -1 : 1
       if (valA > valB) return sortDir === 'asc' ? 1 : -1
-      return a.part_num.localeCompare(b.part_num)
+      // Sekundærsortering: farge-modus grupperer på delnavn og omvendt,
+      // slik at like rader alltid havner ved siden av hverandre
+      return sortField === 'color_name'
+        ? partLabel(a).localeCompare(partLabel(b))
+        : a.color_name.localeCompare(b.color_name)
     })
-  }, [rows, tab, search, sortField, sortDir])
+  }, [rows, tab, query, sortField, sortDir])
+
+  const visibleFigs = useMemo(() => {
+    if (!query) return figs
+    return figs.filter(
+      (f) =>
+        (f.fig_name ?? '').toLowerCase().includes(query) ||
+        f.fig_num.toLowerCase().includes(query)
+    )
+  }, [figs, query])
 
   const visibleSpares = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return spares
+    if (!query) return spares
     return spares.filter(
       (s) =>
-        (s.part_name ?? '').toLowerCase().includes(q) ||
-        s.part_num.toLowerCase().includes(q) ||
-        (s.color_name ?? '').toLowerCase().includes(q)
+        (s.part_name ?? '').toLowerCase().includes(query) ||
+        s.part_num.toLowerCase().includes(query) ||
+        (s.color_name ?? '').toLowerCase().includes(query)
     )
-  }, [spares, search])
+  }, [spares, query])
+
+  const partsByFig = useMemo(() => {
+    const map = new Map<string, MinifigPart[]>()
+    for (const p of figParts) {
+      const list = map.get(p.fig_num)
+      if (list) list.push(p)
+      else map.set(p.fig_num, [p])
+    }
+    return map
+  }, [figParts])
 
   function toggleSort(field: SortField) {
     if (sortField === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -286,6 +626,15 @@ export function PartsCheckView({
       setSortField(field)
       setSortDir(field === 'part_name' || field === 'color_name' ? 'asc' : 'desc')
     }
+  }
+
+  function toggleFig(figNum: string) {
+    setExpandedFigs((prev) => {
+      const next = new Set(prev)
+      if (next.has(figNum)) next.delete(figNum)
+      else next.add(figNum)
+      return next
+    })
   }
 
   // ── Want list-eksport ──────────────────────────────────────────────────────
@@ -323,13 +672,13 @@ export function PartsCheckView({
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  const subtitle = [setNumber, theme, year ? String(year) : null]
+  const metaLine = [setNumber, theme, year ? String(year) : null]
     .filter(Boolean)
     .join(' · ')
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 flex flex-col">
-      {/* ── Topp ───────────────────────────────────────────────────────── */}
+      {/* ── Topp: settbilde + nøkkelinfo ───────────────────────────────── */}
       <div className="px-6 pt-5 pb-4 border-b border-gray-100">
         <Link
           href="/collection"
@@ -339,14 +688,45 @@ export function PartsCheckView({
           Tilbake til samlingen
         </Link>
 
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Delsjekk</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {setName}
-              {subtitle && <span className="text-gray-400"> · {subtitle}</span>}
-            </p>
+        <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-4 min-w-0">
+            {setImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={setImageUrl}
+                alt={setName}
+                className="w-24 h-24 object-contain rounded-lg bg-gray-50 border border-gray-100 flex-shrink-0"
+              />
+            )}
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                Delsjekk
+              </p>
+              <h1 className="text-2xl font-semibold text-gray-900 leading-tight mt-0.5">
+                {setName}
+              </h1>
+              {metaLine && <p className="text-sm text-gray-500 mt-0.5">{metaLine}</p>}
+              <p className="text-sm text-gray-600 mt-1.5">
+                {nf.format(stats.looseExpected)} deler
+                {stats.figsExpected > 0 && (
+                  <>
+                    {' · '}
+                    <span className="inline-flex items-center gap-1">
+                      <User size={12} className="text-gray-400" />
+                      {nf.format(stats.figsExpected)} minifigurer
+                    </span>
+                  </>
+                )}
+              </p>
+              {resolved.rb_set_num && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Rebrickable: {resolved.rb_set_num}
+                  {resolved.rb_name && ` — ${resolved.rb_name}`}
+                </p>
+              )}
+            </div>
           </div>
+
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setAll(true)} className="gap-1.5">
               <Check size={13} />
@@ -366,8 +746,9 @@ export function PartsCheckView({
               {stats.percent.toFixed(1).replace('.', ',')} %
             </span>
             <span className="text-sm text-gray-500 tabular-nums">
-              {nf.format(stats.present)} av {nf.format(stats.expected)} brikker ·{' '}
-              {nf.format(stats.lots)} deletyper
+              {nf.format(stats.present)} av {nf.format(stats.expected)} brikker
+              {stats.figsExpected > 0 &&
+                ` · ${nf.format(stats.figsPresent)}/${nf.format(stats.figsExpected)} figurer`}
             </span>
           </div>
           <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -381,19 +762,18 @@ export function PartsCheckView({
               Mangler {nf.format(stats.missing)} brikker i {nf.format(stats.lotsMissing)}{' '}
               deletyper
             </span>
-            {rbSetNum && <span>Rebrickable: {rbSetNum}</span>}
             {saving > 0 && <span className="text-gray-500">Lagrer…</span>}
             {saveError && <span className="text-red-500">{saveError}</span>}
           </div>
         </div>
       </div>
 
-      {/* ── Faner ──────────────────────────────────────────────────────── */}
+      {/* ── Faner + søk + sortering ────────────────────────────────────── */}
       <div className="px-6 py-3 border-b border-gray-100 flex flex-wrap items-center gap-3 justify-between">
         <div className="flex items-center gap-1">
           {(
             [
-              ['ALL', 'Deleliste', rows.length],
+              ['ALL', 'Deleliste', rows.length + figs.length],
               ['MISSING', 'Mangler', stats.lotsMissing],
               ['SPARES', 'Reservedeler', spares.length],
             ] as [Tab, string, number][]
@@ -417,20 +797,47 @@ export function PartsCheckView({
           ))}
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          />
-          <input
-            type="text"
-            placeholder="Søk på del, nummer, farge…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                       placeholder:text-gray-400"
-          />
+        <div className="flex items-center gap-3">
+          {/* Sortering à la BrickLink: etter delnavn eller etter farge */}
+          {tab !== 'SPARES' && (
+            <div className="flex items-center rounded-lg border border-gray-200 p-0.5">
+              {(
+                [
+                  ['part_name', 'Navn'],
+                  ['color_name', 'Farge'],
+                ] as [SortField, string][]
+              ).map(([field, label]) => (
+                <button
+                  key={field}
+                  onClick={() => toggleSort(field)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                    sortField === field
+                      ? 'bg-gray-900 text-white'
+                      : 'text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  {label}
+                  {sortField === field && (sortDir === 'asc' ? ' ↑' : ' ↓')}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="relative w-full sm:w-56">
+            <Search
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="text"
+              placeholder="Søk på del, nummer, farge…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                         placeholder:text-gray-400"
+            />
+          </div>
         </div>
       </div>
 
@@ -453,15 +860,36 @@ export function PartsCheckView({
         </div>
       )}
 
-      {/* ── Tabell ─────────────────────────────────────────────────────── */}
-      <div className="overflow-auto max-h-[calc(100vh-22rem)]">
+      <div className="overflow-auto max-h-[calc(100vh-26rem)]">
+        {/* ── Minifigurer ────────────────────────────────────────────── */}
+        {tab === 'ALL' && visibleFigs.length > 0 && (
+          <div className="border-b border-gray-100">
+            <div className="px-6 py-2 bg-gray-50/70 flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              <User size={12} />
+              Minifigurer ({nf.format(visibleFigs.length)})
+            </div>
+            {visibleFigs.map((fig) => (
+              <MinifigRow
+                key={fig.id}
+                fig={fig}
+                parts={partsByFig.get(fig.fig_num) ?? []}
+                expanded={expandedFigs.has(fig.fig_num)}
+                onToggle={() => toggleFig(fig.fig_num)}
+                onSetPresent={(qty) => setFigPresent(fig.id, qty)}
+                onShowPart={setDetail}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* ── Deler ──────────────────────────────────────────────────── */}
         {tab === 'SPARES' ? (
-          <SparesTable spares={visibleSpares} />
+          <SparesTable spares={visibleSpares} onShowPart={setDetail} />
         ) : (
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
               <tr>
-                <th className="w-12 px-6 py-3"></th>
+                <th className="w-16 px-6 py-3"></th>
                 <th className="text-left px-3 py-3 font-medium text-gray-500">
                   <button
                     onClick={() => toggleSort('part_name')}
@@ -517,7 +945,23 @@ export function PartsCheckView({
                 return (
                   <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                     <td className="pl-6 pr-2 py-2">
-                      <PartThumb src={row.part_img_url} alt={partLabel(row)} />
+                      <PartThumb
+                        src={row.part_img_url}
+                        alt={partLabel(row)}
+                        size="lg"
+                        onClick={() =>
+                          setDetail({
+                            imgUrl: row.part_img_url,
+                            name: partLabel(row),
+                            partNum: row.part_num,
+                            colorName: row.color_name,
+                            blColorId: bl?.bl_color_id ?? null,
+                            blColorName: bl?.bl_color_name ?? null,
+                            qtyExpected: row.qty_expected,
+                            qtyPresent: row.qty_present,
+                          })
+                        }
+                      />
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex flex-col gap-0.5">
@@ -549,7 +993,7 @@ export function PartsCheckView({
                           value={row.qty_present}
                           onFocus={(e) => e.currentTarget.select()}
                           onChange={(e) =>
-                            setPresent(
+                            setPartPresent(
                               row.id,
                               clamp(parseInt(e.target.value, 10), row.qty_expected)
                             )
@@ -559,7 +1003,7 @@ export function PartsCheckView({
                                      focus:border-transparent"
                         />
                         <button
-                          onClick={() => setPresent(row.id, row.qty_expected)}
+                          onClick={() => setPartPresent(row.id, row.qty_expected)}
                           disabled={missing === 0}
                           title="Har alle av denne"
                           className="p-1 rounded-md text-gray-400 hover:text-[#2E5FA3] hover:bg-gray-100
@@ -588,20 +1032,32 @@ export function PartsCheckView({
       <div className="px-6 py-2.5 border-t border-gray-100 text-xs text-gray-400">
         {tab === 'SPARES'
           ? `${nf.format(visibleSpares.length)} reservedeler (teller ikke mot kompletthet)`
-          : `Viser ${nf.format(visibleRows.length)} deletyper`}
+          : `Viser ${nf.format(visibleRows.length)} deletyper${
+              tab === 'ALL' && visibleFigs.length > 0
+                ? ` og ${nf.format(visibleFigs.length)} minifigurer`
+                : ''
+            }`}
       </div>
+
+      {detail && <PartDetailDialog detail={detail} onClose={() => setDetail(null)} />}
     </div>
   )
 }
 
 // ─── Reservedeler ─────────────────────────────────────────────────────────────
 
-function SparesTable({ spares }: { spares: SparePart[] }) {
+function SparesTable({
+  spares,
+  onShowPart,
+}: {
+  spares: SparePart[]
+  onShowPart: (detail: PartDetail) => void
+}) {
   return (
     <table className="w-full text-sm">
       <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
         <tr>
-          <th className="w-12 px-6 py-3"></th>
+          <th className="w-16 px-6 py-3"></th>
           <th className="text-left px-3 py-3 font-medium text-gray-500">Del</th>
           <th className="text-left px-3 py-3 font-medium text-gray-500 hidden sm:table-cell">
             Farge
@@ -620,7 +1076,22 @@ function SparesTable({ spares }: { spares: SparePart[] }) {
         {spares.map((s) => (
           <tr key={`${s.part_num}-${s.color_id}`} className="hover:bg-gray-50">
             <td className="pl-6 pr-2 py-2">
-              <PartThumb src={s.part_img_url} alt={partLabel(s)} />
+              <PartThumb
+                src={s.part_img_url}
+                alt={partLabel(s)}
+                size="lg"
+                onClick={() =>
+                  onShowPart({
+                    imgUrl: s.part_img_url,
+                    name: partLabel(s),
+                    partNum: s.part_num,
+                    colorName: s.color_name,
+                    blColorId: null,
+                    blColorName: null,
+                    qtyExpected: s.qty_expected,
+                  })
+                }
+              />
             </td>
             <td className="px-3 py-2">
               <div className="flex flex-col gap-0.5">

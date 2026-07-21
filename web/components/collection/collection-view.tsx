@@ -19,7 +19,13 @@ import { ALL_OBJECT_TYPES, OBJECT_TYPE_LABELS, CONDITION_LABELS } from '@/lib/ty
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SortField = 'name' | 'year' | 'theme' | 'num_parts' | 'estimated_value_bl'
+type SortField =
+  | 'name'
+  | 'year'
+  | 'theme'
+  | 'num_parts'
+  | 'num_minifigs'
+  | 'estimated_value_bl'
 type SortDir = 'asc' | 'desc'
 type FilterType = 'ALL' | ObjectType
 
@@ -210,6 +216,10 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
           valA = a.num_parts ?? 0
           valB = b.num_parts ?? 0
           break
+        case 'num_minifigs':
+          valA = a.num_minifigs ?? 0
+          valB = b.num_minifigs ?? 0
+          break
         case 'estimated_value_bl':
           valA = Number(a.estimated_value_bl) || 0
           valB = Number(b.estimated_value_bl) || 0
@@ -360,6 +370,16 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                   <SortIcon field="num_parts" active={sortField} dir={sortDir} />
                 </button>
               </th>
+              <th className="text-right px-3 py-3 font-medium text-gray-500 hidden lg:table-cell">
+                <button
+                  onClick={() => toggleSort('num_minifigs')}
+                  className="flex items-center justify-end hover:text-gray-800 ml-auto"
+                  title="Antall minifigurer"
+                >
+                  Minifig
+                  <SortIcon field="num_minifigs" active={sortField} dir={sortDir} />
+                </button>
+              </th>
               <th className="text-right px-3 py-3 font-medium text-gray-500">
                 <button
                   onClick={() => toggleSort('estimated_value_bl')}
@@ -379,7 +399,7 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
           <tbody className="divide-y divide-gray-50">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
                   Ingen objekter matcher søket ditt.
                 </td>
               </tr>
@@ -442,6 +462,18 @@ export function CollectionView({ objects, supabaseUrl }: CollectionViewProps) {
                 {/* Num parts */}
                 <td className="px-3 py-3 hidden lg:table-cell text-right text-gray-600 tabular-nums">
                   {obj.num_parts?.toLocaleString('nb-NO') ?? '–'}
+                </td>
+
+                {/* Antall minifigurer */}
+                <td className="px-3 py-3 hidden lg:table-cell text-right text-gray-600 tabular-nums">
+                  {obj.num_minifigs ? (
+                    <span className="inline-flex items-center gap-1 justify-end">
+                      <User size={12} className="text-gray-400" />
+                      {obj.num_minifigs.toLocaleString('nb-NO')}
+                    </span>
+                  ) : (
+                    <span className="text-gray-300">–</span>
+                  )}
                 </td>
 
                 {/* BL value */}
