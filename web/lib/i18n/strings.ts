@@ -528,4 +528,40 @@ export const strings = deepFreeze({
       value: 'Value',
     },
   },
+
+  // Shared Allocate / Restore (Phase 1b §7.6) — used by lib/allocate.ts.
+  allocate: {
+    allocate: 'Allocate',
+    restore: 'Restore',
+    failed: 'Could not allocate. Please try again.',
+    restoreFailed: 'Could not restore. Please try again.',
+    overAllocated:
+      'You have already allocated all of these loose parts. Restore one first.',
+  },
+
+  // Free parts pool — Collection ▸ Individual parts (Phase 1b §7.6, FF_POOL).
+  pool: {
+    heading: 'Individual parts',
+    intro:
+      'Loose parts you own that aren’t locked inside a set. “Free” is what’s left after any allocations — allocate them to a set from its parts list or your buy list.',
+    empty: 'No loose parts registered yet.',
+    emptySub:
+      'Register individual parts to build up a pool you can allocate to sets that are missing pieces.',
+    colourUnconfirmed: 'Colour unconfirmed',
+    setColour: 'Set colour',
+    unknownColour: '(unknown)',
+    noLocation: 'No location',
+    allocatedTo: 'Allocated to',
+    columns: {
+      part: 'Part',
+      colour: 'Colour',
+      owned: 'Owned',
+      free: 'Free',
+      allocated: 'Allocated',
+      location: 'Location',
+    },
+    showAllocations: 'Show allocations',
+    hideAllocations: 'Hide allocations',
+    allNumbersFree: 'All free',
+  },
 })

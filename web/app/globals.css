@@ -101,6 +101,10 @@ table.stbl td.mid{text-align:center}
 table.stbl td.name{font-weight:600;color:var(--ink)}
 table.stbl td.val{text-align:right;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
 
+/* Amber "needs attention" chip (e.g. colour unconfirmed) — also a button */
+.chip-warn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--amberBg);color:var(--amber);white-space:nowrap;border:0;cursor:pointer;font-family:inherit;line-height:1.3}
+.chip-warn:hover{filter:brightness(.97)}
+
 .empty{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:52px 20px;text-align:center}
 .empty .ei{font-size:32px;color:var(--faint)}
 .empty .et{font-size:15px;font-weight:700;color:var(--ink);margin-top:10px}
