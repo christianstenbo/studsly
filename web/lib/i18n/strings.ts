@@ -90,8 +90,11 @@ export const strings = deepFreeze({
   },
 
   nav: {
+    home: 'Home',
     collection: 'Collection',
     quickScan: 'Quick Scan',
+    insights: 'Insights',
+    register: 'Register',
     signOut: 'Sign out',
   },
 
@@ -301,5 +304,228 @@ export const strings = deepFreeze({
       GOOD: 'Good',
       FAIR: 'Fair',
     } as Record<string, string>,
+  },
+
+  home: {
+    pageTitle: 'Home — Studsly',
+    greeting: (name: string) => `Good to see you, ${name}`,
+    ask: {
+      title: 'Ask Studsly about your collection',
+      placeholder: 'What am I missing to build the Millennium Falcon?',
+      button: 'Ask',
+      hint: 'Ask questions about your own collection. Coming with the value engine (Phase 2).',
+    },
+    kpi: {
+      value: 'Value',
+      valueUnit: '(NOK)',
+      valueSub: 'BrickLink estimate',
+      parts: 'Parts',
+      setsUnit: (n: string) => `${n} sets`,
+      figsUnit: (n: string) => `${n} minifigs`,
+      buildStatus: 'Build status',
+      newSuffix: ' new',
+      new: 'New',
+      unbuilt: 'Unbuilt',
+      built: 'Built',
+      uniqueSets: 'Unique sets',
+      uniqueSub: (pct: string) => `= ${pct} of all LEGO sets`,
+    },
+    attention: {
+      title: 'Needs your attention',
+      notCounted: (n: string) => `${n} sets not yet parts-counted`,
+      notCountedSub: "Build a checklist to see what's missing",
+      start: 'Start',
+      empty: 'Nothing needs your attention right now.',
+    },
+    closest: {
+      title: 'Closest to completing',
+      seeAll: 'See all series in Insights →',
+      empty: 'Series completion appears once you register collectible series.',
+    },
+    recent: {
+      title: 'Recently added',
+      openFull: 'Open full collection →',
+      empty: 'Nothing added yet.',
+    },
+  },
+
+  insights: {
+    pageTitle: 'Insights — Studsly',
+    title: 'Insights',
+    subtitle: (sets: string, parts: string, value: string) =>
+      `${sets} sets · ${parts} parts · ${value} estimated value`,
+    exportReport: '⬇ Export insurance report',
+    sections: {
+      portfolioValue: 'Portfolio value',
+      makeUp: 'Collection make-up',
+      completion: 'Completion & what’s next',
+      leaders: 'Value leaders & movers',
+      insurance: 'Insurance readiness',
+    },
+    valueByTheme: 'Value by theme',
+    setsByTheme: 'Sets by theme',
+    buildStatus: 'Build status',
+    buildStatusNote:
+      'Most of your collection is still sealed — a big unbuilt backlog, and a strong insurance position.',
+    whatsInIt: 'What’s in it',
+    whatsInItNote:
+      'Two independent counts: parts (bricks) and entities (figures & animals). No double-counting.',
+    tiles: { sets: 'Sets', figures: 'Figures', animals: 'Animals', parts: 'Parts' },
+    valueChartNote:
+      'Shows the BrickLink estimate we have today. A your-value-over-time line builds as Studsly snapshots your collection each month.',
+    showTable: 'Show as table',
+    showChart: 'Show as chart',
+    tableTheme: 'Theme',
+    tableValue: 'Value',
+    tableCount: 'Sets',
+    mostValuable: 'Most valuable',
+    openFull: 'Open full collection →',
+    movers: 'Biggest movers · 6 mo',
+    moversEmpty:
+      'Value history builds up as Studsly snapshots your collection each month — nothing to compare yet.',
+    closestSeries: 'Closest to completing a series',
+    closestSeriesEmpty:
+      'Register a collectible series (like a CMF series) to track completion here.',
+    finishThese: 'Finish these sets',
+    finishTheseSub: 'missing parts you already own',
+    finishTheseEmpty:
+      'Once you count a set’s parts and register loose parts, Studsly matches what you’re missing against what you own.',
+    documentation: 'Documentation across your sets',
+    docBasic: 'Basic — catalogue reference',
+    docDocumented: 'Documented — your own photo',
+    docVerified: 'Verified — receipt / serial',
+    coveredValue: (n: string, total: string) =>
+      `covered value · ${n} of ${total} sets in the export`,
+    emptyValue: 'Portfolio value appears once your sets carry a BrickLink estimate.',
+  },
+
+  register: {
+    pageTitle: 'Register — Studsly',
+    back: '← Collection',
+    title: 'Add to your collection',
+    subtitle: 'Choose what you’re adding — or scan to let Studsly identify it',
+    scan: {
+      title: 'Scan to add',
+      desc: 'Point your camera at a part or figure and Studsly identifies it — or snap a set to look it up and confirm.',
+    },
+    orByType: 'or add by type',
+    methods: {
+      set: { title: 'A set', desc: 'By set number or name. We pull the full part & figure list.' },
+      parts: {
+        title: 'Individual parts',
+        desc: 'Parts or bricks not tied to a set. Add many identical at once, or individual items.',
+      },
+      comp: {
+        title: 'Instructions or a box',
+        desc: 'A spare manual or original box. Register it now, link it to a set later.',
+      },
+      figure: {
+        title: 'A figure or animal',
+        desc: 'A figure, an animal or an assembled creature on its own.',
+      },
+      moc: {
+        title: 'A MOC (your build)',
+        desc: 'A custom build with no official set. Import its parts list.',
+      },
+    },
+    comingSoon: 'Coming soon',
+    note: 'Everything you add starts with a catalogue reference — enough for a basic insurance record. Strengthen any item with your own photos later.',
+  },
+
+  setDetail: {
+    pageTitle: (name: string) => `${name} — Studsly`,
+    back: '← Collection',
+    notFound: 'That set could not be found in your collection.',
+    tabs: {
+      overview: 'Overview',
+      parts: 'Parts',
+      figures: 'Figures',
+      value: 'Value & Insurance',
+    },
+    facts: { value: 'Value (NOK)', pieces: 'Pieces', figures: 'Figures', parts: 'Parts' },
+    edit: 'Edit',
+    buildStatus: 'Build status',
+    status: { new: 'New / Sealed', sealed: 'New / Sealed', unbuilt: 'Unbuilt', built: 'Built' },
+    statusReadonly:
+      'Editing build status, allocations and modifications arrives with the next release. This view reflects your registered data.',
+    modified: '✦ Modified',
+    partsMeter: (present: string, total: string) => `Parts: ${present} of ${total} present`,
+    partsMissing: (n: string) => `${n} missing`,
+    goToParts: 'Go to parts check →',
+    contents: 'Contents & condition',
+    contentsEmpty:
+      'No contents recorded yet. Instructions and box status appear here once registered.',
+    component: {
+      instructions: 'Instructions',
+      box: 'Original box',
+      stickers: 'Sticker sheet',
+      innerBags: 'Inner bags',
+      extras: 'Extras',
+      other: 'Other',
+      present: 'Present',
+      notPresent: 'Not with this copy',
+    },
+    overallCondition: 'Overall condition',
+    grades: { MINT: 'Mint', EXCELLENT: 'Excellent', GOOD: 'Good', FAIR: 'Fair', POOR: 'Poor' },
+    notGraded: 'Not graded',
+    provenance: 'Provenance & meta',
+    prov: { entryId: 'Entry ID', added: 'Added', condition: 'Condition', theme: 'Theme' },
+    valueSection: 'How this value is built',
+    ledger: {
+      base: (tier: string) => `Base — ${tier}`,
+      tierSealed: 'Sealed',
+      tierCib: 'Used · complete in box',
+      tierIncomplete: 'Used · incomplete',
+      noBox: '− Original box (not with this copy)',
+      noManual: '− Instructions (not with this copy)',
+      grade: (g: string) => `Condition grade (${g})`,
+      restoration: 'Restoration (parts to replace)',
+      restorationPhase2: '— Phase 2',
+      restorationFlagged: (n: string) => `${n} parts flagged`,
+      thisCopy: 'This copy',
+    },
+    valueNote:
+      'Base is a BrickLink estimate you can override — not a live price. Box, instructions and condition each move the number. The restoration line shows what’s flagged to replace; its price arrives with the value engine (Phase 2).',
+    partsTabEmpty:
+      'No parts checklist yet for this set. Open the parts check to build one from the catalog.',
+    openPartsCheck: 'Open parts check →',
+    figuresTabEmpty: 'No figure list registered for this set yet.',
+  },
+
+  collectionExtra: {
+    summary: (sets: string, figures: string, animals: string, value: string) =>
+      `${sets} sets · ${figures} figures · ${animals} animals · ${value} estimated value`,
+    register: 'Register',
+    searchPlaceholder:
+      'Search or ask across everything — e.g. “Millennium Falcon”, or a theme',
+    aiPill: '✦ AI',
+    tabs: { sets: 'Sets', figures: 'Figures', animals: 'Animals', parts: 'Parts', mocs: 'MOCs' },
+    view: 'View',
+    grid: 'Grid',
+    table: 'Table',
+    sort: 'Sort',
+    sortOptions: {
+      valueDesc: 'Value: high → low',
+      valueAsc: 'Value: low → high',
+      recent: 'Recently added',
+      nameAsc: 'Name: A → Z',
+      yearDesc: 'Year: newest first',
+      partsDesc: 'Piece count: most first',
+    },
+    shown: (n: number, total: number) => `${n} of ${total} shown`,
+    showing: (n: number, total: number) =>
+      n === total ? `Showing ${n} sets` : `Showing ${n} of ${total} sets`,
+    tabPlaceholder: (tab: string) => `${tab} view`,
+    tabPlaceholderSub:
+      'Cross-type views arrive with the registration flows in the next release. Sets are live now.',
+    noMatch: 'No sets match your search.',
+    columns: {
+      name: 'Name',
+      theme: 'Theme',
+      year: 'Year',
+      status: 'Status',
+      parts: 'Parts',
+      value: 'Value',
+    },
   },
 })

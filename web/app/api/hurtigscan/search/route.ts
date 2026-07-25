@@ -100,41 +100,6 @@ async function getMinifigByNum(
   }
 }
 
-// ─── Norwegian → English translation via Haiku ────────────────────────────────
-
-async function translateQuery(query: string): Promise<string> {
-  if (!process.env.ANTHROPIC_API_KEY || looksLikeSetNumber(query)) return query
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 60,
-        temperature: 0,
-        messages: [
-          {
-            role: "user",
-            content: `Oversett dette LEGO-søket til BrickLink/Rebrickable-terminologi på engelsk. Svar KUN med den oversatte søketermen — ingen forklaringer:\n${query}`,
-          },
-        ],
-      }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      const text: string = data.content?.[0]?.text ?? ""
-      return text.trim().replace(/^["']|["']$/g, "") || query
-    }
-  } catch {
-    // fall through
-  }
-  return query
-}
-
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -162,22 +127,12 @@ export async function POST(req: NextRequest) {
       results = await searchSetsByName(supabase, q)
     }
   } else {
-    // Free-text search: translate Norwegian → English, search sets + minifigs
-    const qEn = await translateQuery(q)
+    // Free-text search over the (English) catalog — sets + minifigs, by name.
     const [sets, figs] = await Promise.all([
-      searchSetsByName(supabase, qEn, 10),
-      searchMinifigsByName(supabase, qEn, 4),
+      searchSetsByName(supabase, q, 10),
+      searchMinifigsByName(supabase, q, 4),
     ])
     results = [...sets, ...figs]
-
-    // Fallback: if translation produced nothing, try original term
-    if (!results.length && qEn !== q) {
-      const [setsOrig, figsOrig] = await Promise.all([
-        searchSetsByName(supabase, q, 10),
-        searchMinifigsByName(supabase, q, 4),
-      ])
-      results = [...setsOrig, ...figsOrig]
-    }
   }
 
   return NextResponse.json({ results })

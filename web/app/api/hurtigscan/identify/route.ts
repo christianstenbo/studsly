@@ -61,42 +61,42 @@ async function localGetMinifig(supabase: SupabaseClient, figNum: string): Promis
 
 // ─── AI vision prompt ─────────────────────────────────────────────────────────
 
-const IDENTIFY_PROMPT = `Du er ekspert på LEGO. Se på dette bildet og identifiser hva det viser.
+const IDENTIFY_PROMPT = `You are a LEGO expert. Look at this image and identify what it shows.
 
-Bildet kan vise ET AV DISSE:
-- SET: en LEGO-eske, ferdig bygget sett eller uåpnet pakke
-- MINIFIG: én eller flere minifigurer
-- PART: én eller noen få løse LEGO-deler (klosser, plater, skinner etc.)
-- BULK: en boks, pose eller haug med blandet LEGO
-- INSTRUCTION: en instruksjonsbok/-hefte
-- BOX: en tom LEGO-eske uten innhold
-- GEAR: LEGO merchandise (klær, vesker, klokker etc.)
-- CATALOG: LEGO-katalog
-- MOC: tydelig egenbygd modell (ikke fra offisiell eske)
-- OTHER: ukjent
+The image may show ONE OF THESE:
+- SET: a LEGO box, a finished build, or an unopened package
+- MINIFIG: one or more minifigures
+- PART: one or a few loose LEGO parts (bricks, plates, rails, etc.)
+- BULK: a box, bag, or pile of mixed LEGO
+- INSTRUCTION: an instruction booklet/manual
+- BOX: an empty LEGO box with no contents
+- GEAR: LEGO merchandise (clothing, bags, watches, etc.)
+- CATALOG: a LEGO catalog
+- MOC: clearly a custom build (not from an official box)
+- OTHER: unknown
 
-Gjør disse vurderingene:
-1. Hvilken type er dette? (type_guess)
-2. SET/MINIFIG: identifiser settnummer hvis mulig.
-3. PART: beskriv delen (form, studmønster, kategori) og en kort søketerm egnet for Rebrickable (f.eks. '2x4 brick' eller 'curved slope 2x1').
-4. Anslå år hvis relevant.
-5. Slitasjegrad (kun for åpne/byggede objekter, null for forseglede).
+Make these assessments:
+1. Which type is this? (type_guess)
+2. SET/MINIFIG: identify the set number if possible.
+3. PART: describe the part (shape, stud pattern, category) and a short search term suited to Rebrickable (e.g. '2x4 brick' or 'curved slope 2x1').
+4. Estimate the year if relevant.
+5. Wear level (only for opened/built objects, null for sealed).
 
-VIKTIG — reissue-regel for SET: foretrekk nyeste utgave MED MINDRE bildet viser vintage-eske eller vintage-klossfarger.
+IMPORTANT — reissue rule for SET: prefer the newest release UNLESS the image shows a vintage box or vintage brick colors.
 
-Svar KUN med JSON, ingen annen tekst:
-{"type_guess":"SET","set_number":"75192","name":"Millennium Falcon","year":2017,"wear_level":"NEAR_MINT","wear_note":"Lett støv","part_description":null,"part_search_query":null,"part_color_bl":null,"confidence":"high"}
+Respond with JSON ONLY, no other text:
+{"type_guess":"SET","set_number":"75192","name":"Millennium Falcon","year":2017,"wear_level":"NEAR_MINT","wear_note":"Light dust","part_description":null,"part_search_query":null,"part_color_bl":null,"confidence":"high"}
 
-Felt-regler:
-KRITISK DISTINKSJON — PART vs MOC:
-- PART = én enkelt støpt LEGO-komponent, uansett hvor kompleks formen er. Spør deg selv: 'Kom dette ut av én form?' → PART.
-- MOC = noe et menneske har montert av FLERE deler. Ser du skjøter mellom klosser eller deler i ulike farger satt sammen? → MOC.
-Tvilstilfelle: velg PART.
+Field rules:
+CRITICAL DISTINCTION — PART vs MOC:
+- PART = a single molded LEGO component, no matter how complex the shape. Ask yourself: 'Did this come out of one mold?' → PART.
+- MOC = something a person has assembled from MULTIPLE parts. Do you see seams between bricks, or parts of different colors joined together? → MOC.
+- When in doubt: choose PART.
 
-type_guess: én av SET|MINIFIG|PART|BULK|INSTRUCTION|BOX|GEAR|CATALOG|MOC|OTHER
-set_number: tall og bindestrek kun, f.eks. '75192' eller '71011-8', ellers null
-wear_level: én av MINT|NEAR_MINT|VERY_GOOD|GOOD|FAIR|null
-confidence: én av high|medium|low`
+type_guess: one of SET|MINIFIG|PART|BULK|INSTRUCTION|BOX|GEAR|CATALOG|MOC|OTHER
+set_number: digits and hyphen only, e.g. '75192' or '71011-8', otherwise null
+wear_level: one of MINT|NEAR_MINT|VERY_GOOD|GOOD|FAIR|null
+confidence: one of high|medium|low`
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
