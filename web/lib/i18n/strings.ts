@@ -490,6 +490,97 @@ export const strings = deepFreeze({
       'No parts checklist yet for this set. Open the parts check to build one from the catalog.',
     openPartsCheck: 'Open parts check →',
     figuresTabEmpty: 'No figure list registered for this set yet.',
+
+    // Editable build status (Flow 2, FF_MOD). statusLabels are the four states;
+    // the segmented control persists ONLY objects.build_status.
+    statusLabels: { NEW: 'New', SEALED: 'Sealed', UNBUILT: 'Unbuilt', BUILT: 'Built' } as Record<
+      string,
+      string
+    >,
+    statusEdit: {
+      hint: 'Set the build state. Marking a set factory-sealed again asks for confirmation — nothing else about the set changes.',
+      saved: 'Build status saved',
+      confirmTitle: 'Mark as factory-sealed?',
+      confirmBody: (from: string) =>
+        `This set is currently ${from}. Marking it Sealed says it is unopened in its factory packaging — use this only to fix a mistake. Parts, figures, contents and value are left untouched.`,
+      cancel: 'Cancel',
+      confirm: 'Mark as sealed',
+    },
+
+    // MOD (Flow 2, FF_MOD).
+    mod: {
+      toggleLabel: 'Modified build (MOD)',
+      toggleDesc:
+        'Turn on if this build differs from the official set — parts added or removed. Independent of Sealed / Unbuilt / Built.',
+      summaryTitle: 'Modifications',
+      summaryLine: (added: number) =>
+        added === 0
+          ? 'No parts added to this build yet. Add parts below from your available inventory, or register new ones.'
+          : `This build differs from the official set: ${added} part${added === 1 ? '' : 's'} added. Added parts are pulled from your available inventory (or registered new) and count toward the set.`,
+      manage: 'Manage in Parts →',
+      editorTitle: 'Modifications to this build',
+      addTitle: 'Add parts to this mod',
+      srcInv: 'From my inventory',
+      srcNew: 'Register new parts',
+      searchPlaceholder: 'Search your available parts — e.g. 3001 or “Brick 2×4”',
+      hintInv:
+        'Pick parts you already own that aren’t allocated to a set — they move from your available pool into this build.',
+      hintNew:
+        'Register brand-new parts. They’re added to your inventory and allocated straight into this build.',
+      addedTitle: 'Added to this build',
+      officialTitle: 'Official set inventory',
+      fromInventory: 'from inventory',
+      registeredNew: 'registered new',
+      colAddedPart: 'Added part',
+      colInMod: 'In mod',
+      allocate: 'Add',
+      poolFree: (n: number, loc: string | null) =>
+        loc ? `${n} free · ${loc}` : `${n} free`,
+      removeHint:
+        'Removing parts to your pool arrives in the next update. For now you can add parts and restore any you’ve added.',
+    },
+
+    // Register-new-part mini form (Flow 2 MOD).
+    registerNew: {
+      partNum: 'Part number',
+      name: 'Name (optional)',
+      colour: 'Colour',
+      quantity: 'Quantity',
+      add: 'Add to build',
+      cancel: 'Cancel',
+      pickColour: 'Pick a colour',
+    },
+
+    // Inline Parts tab (Flow 2, FF_MOD).
+    partsUI: {
+      bar: (present: string, total: string) => `Parts present: ${present} of ${total}`,
+      missing: (n: string) => `${n} missing`,
+      markAll: 'Mark all present',
+      reset: 'Reset',
+      intro:
+        'Enter what you have with the − / + steppers (or type). Anything short of the set quantity counts as missing.',
+      colPart: 'Part',
+      colColour: 'Colour',
+      colInSet: 'In set',
+      colHave: 'Have',
+      colStatus: 'Status',
+      complete: 'Complete',
+      missingStatus: (n: string) => `${n} missing`,
+      incDecInc: 'Increase parts you have',
+      incDecDec: 'Decrease parts you have',
+      noChecklistTitle: 'No parts list yet for this set',
+      noChecklistSub: 'Build the checklist in the parts check, then count here.',
+    },
+
+    // Inline Figures tab (Flow 2, FF_MOD).
+    figuresUI: {
+      bar: (present: string, total: string) => `Figures & animals present: ${present} of ${total}`,
+      colFigure: 'Figure',
+      colType: 'Type',
+      empty: 'No figures registered for this set yet.',
+      incFig: 'Increase figures you have',
+      decFig: 'Decrease figures you have',
+    },
   },
 
   collectionExtra: {
