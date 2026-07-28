@@ -2,19 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import type { SupabaseClient } from "@supabase/supabase-js"
 
-async function getNextOwnershipId(supabase: SupabaseClient): Promise<string> {
-  const { data } = await supabase
-    .from("objects")
-    .select("ownership_id")
-    .like("ownership_id", "ST-%")
-    .order("ownership_id", { ascending: false })
-    .limit(1)
-
-  if (!data || data.length === 0) return "ST-0000001"
-  const last = data[0].ownership_id as string
-  const num = parseInt(last.split("-")[1]) + 1
-  return `ST-${num.toString().padStart(7, "0")}`
-}
+// ownership_id is assigned by the DB (objects BEFORE INSERT trigger,
+// generate_ownership_id -> SL-XXXXXX, v4 M14). This route no longer mints ids;
+// it omits the column and reads back what the trigger produced.
 
 async function getOrCreateLocation(
   supabase: SupabaseClient,
@@ -49,13 +39,11 @@ export async function POST(req: NextRequest) {
 
   const { setData, condition, wearLevel, locStr } = await req.json()
 
-  const ownershipId = await getNextOwnershipId(supabase)
   const locId = locStr ? await getOrCreateLocation(supabase, locStr, user.id) : null
   const today = new Date().toISOString().split("T")[0]
 
   const record = {
     user_id: user.id,
-    ownership_id: ownershipId,
     status: "OWNED",
     object_type: (setData.obj_type as string) || "SET",
     set_number: setData.set_num ?? null,
@@ -69,15 +57,16 @@ export async function POST(req: NextRequest) {
     quality_level: "BASIC",
   }
 
-  const { error } = await supabase.from("objects").insert(record)
+  // The trigger fills ownership_id; read both back in the same round-trip.
+  const { data: obj, error } = await supabase
+    .from("objects")
+    .insert(record)
+    .select("id, ownership_id")
+    .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Fetch the UUID for future image upload
-  const { data: obj } = await supabase
-    .from("objects")
-    .select("id")
-    .eq("ownership_id", ownershipId)
-    .single()
-
-  return NextResponse.json({ ownershipId, objectId: (obj?.id as string) ?? null })
+  return NextResponse.json({
+    ownershipId: (obj?.ownership_id as string) ?? null,
+    objectId: (obj?.id as string) ?? null,
+  })
 }
