@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { TopNav } from "@/components/layout/top-nav"
+import { resolveFlags, FLAGS } from "@/lib/flags"
 
 /**
  * Dashboard layout — wraps all protected routes.
@@ -18,9 +19,24 @@ export default async function DashboardLayout({
 
   if (!user) redirect("/login")
 
+  // Environment badge: visible on any non-production build, or on production if
+  // a feature flag is somehow on — so it's always obvious you're not looking at
+  // the plain production app. VERCEL_ENV is 'production' | 'preview' | undefined
+  // (local dev).
+  const vercelEnv = process.env.VERCEL_ENV ?? "development"
+  const flags = resolveFlags(user.email)
+  const onFlags = FLAGS.filter((f) => flags[f])
+  const showBadge = vercelEnv !== "production" || onFlags.length > 0
+  const envBadge = showBadge
+    ? {
+        label: vercelEnv === "production" ? "Flags on" : vercelEnv === "preview" ? "Preview" : "Dev",
+        flags: onFlags,
+      }
+    : null
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      <TopNav user={user} />
+      <TopNav user={user} envBadge={envBadge} />
       <main className="app-main">{children}</main>
     </div>
   )
