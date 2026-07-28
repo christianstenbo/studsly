@@ -14,7 +14,13 @@ const NAV_LINKS = [
   { href: "/insights", label: strings.nav.insights, exact: false },
 ]
 
-export function TopNav({ user }: { user: User }) {
+export function TopNav({
+  user,
+  envBadge,
+}: {
+  user: User
+  envBadge?: { label: string; flags: string[] } | null
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const [signingOut, setSigningOut] = useState(false)
@@ -33,6 +39,20 @@ export function TopNav({ user }: { user: User }) {
         <span className="mk"><span /></span>
         {strings.common.appName}
       </Link>
+
+      {envBadge && (
+        <span
+          className="envbadge"
+          title={
+            envBadge.flags.length
+              ? `${envBadge.label} · flags on: ${envBadge.flags.join(", ")}`
+              : envBadge.label
+          }
+        >
+          {envBadge.label}
+          {envBadge.flags.length > 0 && <b>{envBadge.flags.length}</b>}
+        </span>
+      )}
 
       <nav className="nav" aria-label="Primary">
         {NAV_LINKS.map(({ href, label, exact }) => {
