@@ -7,7 +7,10 @@ import { formatNum, formatNok, statusBadge } from '@/lib/display'
 import { createClient } from '@/lib/supabase/client'
 import { allocatePart, restore } from '@/lib/allocate'
 import type { Flags } from '@/lib/flags'
-import type { SetPart, SetFig, ModFreePart, SetAllocation } from '@/lib/types/set-detail'
+import type {
+  SetPart, SetFig, ModFreePart, SetAllocation, SetComponent, FreeComponent, CopyInfo,
+} from '@/lib/types/set-detail'
+import { ContentsEditor } from '@/components/set-detail/contents-editor'
 
 const d = strings.setDetail
 
@@ -37,13 +40,6 @@ type Obj = {
   has_original_box: boolean | null
   ownership_id: string | null
   created_at: string
-}
-type Component = {
-  kind: string
-  label: string | null
-  is_present: boolean
-  grade: string | null
-  note: string | null
 }
 type Completeness = {
   pieces_expected: number | null
@@ -143,9 +139,11 @@ export function SetDetailView({
   figs,
   freeParts,
   allocations,
+  freeComponents,
+  copyInfo,
 }: {
   obj: Obj
-  components: Component[]
+  components: SetComponent[]
   completeness: Completeness
   img: string | null
   flags: Flags
@@ -154,6 +152,8 @@ export function SetDetailView({
   figs: SetFig[]
   freeParts: ModFreePart[]
   allocations: SetAllocation[]
+  freeComponents: FreeComponent[]
+  copyInfo: CopyInfo | null
 }) {
   const [tab, setTab] = useState<Tab>('overview')
   const badge = statusBadge(obj)
@@ -292,46 +292,59 @@ export function SetDetailView({
             <ModSummary added={parts.filter((p) => p.used_in_mod).length} onManage={() => setTab('parts')} />
           )}
 
-          <div className="card2">
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
-              <div className="sect" style={{ margin: 0 }}>{d.contents}</div>
-            </div>
-            {components.length === 0 ? (
-              <p className="hint">{d.contentsEmpty}</p>
-            ) : (
-              <div className="contents">
-                {components.map((c, i) => (
-                  <div className="crow" key={i}>
-                    <div className="ci" aria-hidden>{COMPONENT_ICON[c.kind] ?? '▦'}</div>
-                    <div className="cb">
-                      <div className="cn">{c.label || COMPONENT_LABEL[c.kind] || c.kind}</div>
-                      <div className="cs">
-                        {c.is_present ? d.component.present : d.component.notPresent}
+          {flags.FF_COMPONENTS ? (
+            <ContentsEditor
+              objectId={obj.id}
+              userId={userId}
+              initialComponents={components}
+              freeComponents={freeComponents}
+              initialGrade={obj.condition_grade}
+              completenessPct={completeness?.percent_complete ?? null}
+              copyInfo={copyInfo}
+              onValueTab={() => setTab('value')}
+            />
+          ) : (
+            <div className="card2">
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                <div className="sect" style={{ margin: 0 }}>{d.contents}</div>
+              </div>
+              {components.length === 0 ? (
+                <p className="hint">{d.contentsEmpty}</p>
+              ) : (
+                <div className="contents">
+                  {components.map((c, i) => (
+                    <div className="crow" key={i}>
+                      <div className="ci" aria-hidden>{COMPONENT_ICON[c.kind] ?? '▦'}</div>
+                      <div className="cb">
+                        <div className="cn">{c.label || COMPONENT_LABEL[c.kind] || c.kind}</div>
+                        <div className="cs">
+                          {c.is_present ? d.component.present : d.component.notPresent}
+                        </div>
                       </div>
+                      {c.grade ? (
+                        <span className="cchip cond">{d.grades[c.grade as keyof typeof d.grades] ?? c.grade}</span>
+                      ) : (
+                        <span className={`cchip${c.is_present ? '' : ' miss'}`}>
+                          {c.is_present ? d.component.present : d.component.notPresent}
+                        </span>
+                      )}
                     </div>
-                    {c.grade ? (
-                      <span className="cchip cond">{d.grades[c.grade as keyof typeof d.grades] ?? c.grade}</span>
-                    ) : (
-                      <span className={`cchip${c.is_present ? '' : ' miss'}`}>
-                        {c.is_present ? d.component.present : d.component.notPresent}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+              <div className="gradewrap">
+                <span className="lbl3">{d.overallCondition}</span>
+                <div className="statusctl" aria-label={d.overallCondition}>
+                  {GRADES.map(([key, label]) => (
+                    <button key={key} className={obj.condition_grade === key ? 'on' : ''} disabled>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {!obj.condition_grade && <span className="hint">{d.notGraded}</span>}
               </div>
-            )}
-            <div className="gradewrap">
-              <span className="lbl3">{d.overallCondition}</span>
-              <div className="statusctl" aria-label={d.overallCondition}>
-                {GRADES.map(([key, label]) => (
-                  <button key={key} className={obj.condition_grade === key ? 'on' : ''} disabled>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {!obj.condition_grade && <span className="hint">{d.notGraded}</span>}
             </div>
-          </div>
+          )}
 
           <div className="card2" style={{ marginBottom: 0 }}>
             <div className="sect">{d.provenance}</div>

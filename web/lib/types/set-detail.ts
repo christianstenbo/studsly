@@ -44,3 +44,30 @@ export interface SetAllocation {
   target_part_num: string | null
   target_color_id: number | null
 }
+
+/** A set's content component row (object_components). */
+export interface SetComponent {
+  id: string
+  kind: string
+  label: string | null
+  is_present: boolean
+  grade: string | null
+  damage_tags: string[]
+  note: string | null
+  linked_object_id: string | null
+}
+
+/** A loose manual/box matching this set, available to allocate (v_free_components). */
+export interface FreeComponent {
+  source_object_id: string
+  object_type: string
+  name: string | null
+  set_number: string | null
+  condition_grade: string | null
+}
+
+/** This copy's place within its set_group (only when there are 2+ copies). */
+export interface CopyInfo {
+  index: number
+  total: number
+}
