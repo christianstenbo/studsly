@@ -30,47 +30,141 @@ function GoogleIcon() {
   )
 }
 
+const auth = strings.common.auth
+
+/** Map a normalized error code (from /auth/callback) to friendly copy; fall
+ * back to showing the raw text for any legacy/unknown value. */
+function friendlyError(raw?: string): string | null {
+  if (!raw) return null
+  return auth.errors[raw] ?? decodeURIComponent(raw)
+}
+
 export function LoginForm({ error }: { error?: string }) {
-  const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [email, setEmail] = useState("")
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [sentTo, setSentTo] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const displayError = formError ?? friendlyError(error)
 
   const handleGoogleLogin = async () => {
-    setLoading(true)
+    setGoogleLoading(true)
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          access_type: "offline",
-          prompt: "consent",
-        },
+        queryParams: { access_type: "offline", prompt: "consent" },
       },
     })
-    // Page will redirect — no need to setLoading(false)
+    // Page will redirect — no need to reset loading
+  }
+
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormError(null)
+    setOtpLoading(true)
+    const supabase = createClient()
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: true,
+      },
+    })
+    setOtpLoading(false)
+    if (otpError) {
+      const rateLimited = otpError.status === 429 || /rate/i.test(otpError.message)
+      setFormError(rateLimited ? auth.errors.rate_limited : auth.errors.generic)
+      return
+    }
+    setSentTo(email)
+  }
+
+  if (sentTo) {
+    return (
+      <Card>
+        <CardHeader className="text-center pb-4">
+          <CardTitle className="text-lg">{auth.checkInboxTitle}</CardTitle>
+          <CardDescription>
+            {auth.checkInboxDesc.replace("{email}", sentTo)}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={() => {
+              setSentTo(null)
+              setFormError(null)
+            }}
+          >
+            ←
+          </Button>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
     <Card>
       <CardHeader className="text-center pb-4">
-        <CardTitle className="text-lg">{strings.common.auth.cardTitle}</CardTitle>
-        <CardDescription>{strings.common.auth.cardDescription}</CardDescription>
+        <CardTitle className="text-lg">{auth.cardTitle}</CardTitle>
+        <CardDescription>{auth.cardDescription}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && (
+        {displayError && (
           <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {decodeURIComponent(error)}
+            {displayError}
           </div>
         )}
+
+        {/* Primary: Google */}
         <Button
           variant="outline"
           size="lg"
           className="w-full gap-3"
           onClick={handleGoogleLogin}
-          disabled={loading}
+          disabled={googleLoading}
         >
           <GoogleIcon />
-          {loading ? strings.common.auth.signingIn : strings.common.auth.continueWithGoogle}
+          {googleLoading ? auth.signingIn : auth.continueWithGoogle}
         </Button>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 text-xs text-gray-400">
+          <span className="h-px flex-1 bg-gray-200" />
+          {auth.dividerOr}
+          <span className="h-px flex-1 bg-gray-200" />
+        </div>
+
+        {/* Secondary: email magic link */}
+        <form onSubmit={handleMagicLink} className="space-y-3">
+          <label htmlFor="email" className="sr-only">
+            {auth.emailLabel}
+          </label>
+          <input
+            id="email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={auth.emailPlaceholder}
+            className="w-full rounded-md border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+          />
+          <Button
+            type="submit"
+            variant="outline"
+            size="lg"
+            className="w-full"
+            disabled={otpLoading || !email}
+          >
+            {otpLoading ? auth.sendingMagicLink : auth.sendMagicLink}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   )
