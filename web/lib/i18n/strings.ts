@@ -96,6 +96,7 @@ export const strings = deepFreeze({
     insights: 'Insights',
     register: 'Register',
     signOut: 'Sign out',
+    buildShaTitle: 'Build commit — select to copy into a bug report',
   },
 
   collection: {

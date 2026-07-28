@@ -19,7 +19,7 @@ export function TopNav({
   envBadge,
 }: {
   user: User
-  envBadge?: { label: string; flags: string[] } | null
+  envBadge?: { label: string; flags: string[]; sha: string | null } | null
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -51,6 +51,11 @@ export function TopNav({
         >
           {envBadge.label}
           {envBadge.flags.length > 0 && <b>{envBadge.flags.length}</b>}
+          {envBadge.sha && (
+            <code className="envsha" title={strings.nav.buildShaTitle}>
+              {envBadge.sha}
+            </code>
+          )}
         </span>
       )}
 

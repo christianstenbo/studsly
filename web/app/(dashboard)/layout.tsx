@@ -27,10 +27,14 @@ export default async function DashboardLayout({
   const flags = resolveFlags(user.email)
   const onFlags = FLAGS.filter((f) => flags[f])
   const showBadge = vercelEnv !== "production" || onFlags.length > 0
+  // Short commit SHA so a tester can paste the exact build into a bug report.
+  // VERCEL_GIT_COMMIT_SHA is set on Vercel; empty locally.
+  const sha = (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || null
   const envBadge = showBadge
     ? {
         label: vercelEnv === "production" ? "Flags on" : vercelEnv === "preview" ? "Preview" : "Dev",
         flags: onFlags,
+        sha,
       }
     : null
 
