@@ -208,10 +208,23 @@ export function CollectionView({
           </div>
 
           {filtered.length === 0 ? (
-            <div className="empty">
-              <div className="ei" aria-hidden>▦</div>
-              <div className="et">{t.noMatch}</div>
-            </div>
+            objects.length === 0 ? (
+              // Genuinely empty collection (a brand-new user), not a failed
+              // search — a real empty state with a way forward.
+              <div className="empty">
+                <div className="ei" aria-hidden>▦</div>
+                <div className="et">{t.emptyCollection}</div>
+                <div className="es">{t.emptyCollectionSub}</div>
+                <Link className="btnP" href="/register" style={{ marginTop: 12 }}>
+                  <span style={{ fontSize: 15, lineHeight: 1 }}>+</span> {t.register}
+                </Link>
+              </div>
+            ) : (
+              <div className="empty">
+                <div className="ei" aria-hidden>▦</div>
+                <div className="et">{t.noMatch}</div>
+              </div>
+            )
           ) : view === 'grid' ? (
             <div className="grid">
               {filtered.map((o) => {

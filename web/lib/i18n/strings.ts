@@ -680,6 +680,8 @@ export const strings = deepFreeze({
     tabPlaceholderSub:
       'Cross-type views arrive with the registration flows in the next release. Sets are live now.',
     noMatch: 'No sets match your search.',
+    emptyCollection: 'Your collection is empty',
+    emptyCollectionSub: 'Register your first set, figure or part to get started.',
     columns: {
       name: 'Name',
       theme: 'Theme',
