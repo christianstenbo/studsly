@@ -369,6 +369,14 @@ table.stbl td.val{text-align:right;font-weight:700;color:var(--ink);font-variant
 .sc-register .sheethead .tt{font-size:16px;font-weight:800;letter-spacing:-.3px;color:var(--ink)}
 .sc-register .sheethead .ts{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px}
 .sc-register .sheetbody{padding:18px}
+/* Flow 4 — register instructions / box form */
+.sc-register .lbl3{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.sc-register .rfield{display:block;width:100%;margin-top:6px;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font:inherit;font-size:14px;color:var(--ink);outline:none;text-transform:none;letter-spacing:0}
+.sc-register .rfield:focus{border-color:var(--brand)}
+.sc-register .segmt{display:flex;background:#eef1f5;border:1px solid var(--line);border-radius:9px;padding:3px}
+.sc-register .seg{appearance:none;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:8px 14px;border-radius:7px;cursor:pointer}
+.sc-register .seg.active{background:#fff;color:var(--brandText);box-shadow:0 1px 2px rgba(15,23,42,.08)}
+.sc-register .sheetbody .tt{font-size:15px;font-weight:800;color:var(--ink)}
 .sc-register .scanhero{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,var(--brand),var(--brand2));border-radius:14px;padding:16px;color:#fff;cursor:pointer;margin-bottom:8px;text-decoration:none;border:0;width:100%;text-align:left}
 .sc-register .scanhero:hover{filter:brightness(1.04)}
 .sc-register .scanhero .si{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:22px;flex:0 0 auto}

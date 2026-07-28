@@ -1,5 +1,7 @@
 import Link from "next/link"
+import { createClient } from "@/lib/supabase/server"
 import { strings } from "@/lib/i18n/strings"
+import { resolveFlags } from "@/lib/flags"
 
 export const metadata = { title: strings.register.pageTitle }
 
@@ -7,11 +9,15 @@ const r = strings.register
 
 /**
  * Register — the "Choose" step (register v5). Scan / A set / A figure route to
- * the existing Quick Scan register flow. Individual parts, Instructions or a box,
- * and MOC import are the Phase 1b registration flows — shown here but not yet
- * wired, so they read "Coming soon" rather than leading somewhere half-built.
+ * the existing Quick Scan register flow. Instructions or a box is Flow 4
+ * (FF_COMPONENTS): when the flag is on it links to /register/component, else it
+ * stays "Coming soon". Individual parts and MOC import remain Phase 1b stubs.
  */
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const flags = resolveFlags(user?.email)
+
   return (
     <div className="sc-register">
       <Link className="rback" href="/collection">{r.back}</Link>
@@ -68,14 +74,24 @@ export default function RegisterPage() {
               </span>
             </div>
 
-            <div className="method" aria-disabled="true">
-              <span className="mi" aria-hidden>📘</span>
-              <span>
-                <span className="mt">{r.methods.comp.title}</span>
-                <span className="md">{r.methods.comp.desc}</span>
-                <span className="soon">{r.comingSoon}</span>
-              </span>
-            </div>
+            {flags.FF_COMPONENTS ? (
+              <Link className="method" href="/register/component">
+                <span className="mi" aria-hidden>📘</span>
+                <span>
+                  <span className="mt">{r.methods.comp.title}</span>
+                  <span className="md">{r.methods.comp.desc}</span>
+                </span>
+              </Link>
+            ) : (
+              <div className="method" aria-disabled="true">
+                <span className="mi" aria-hidden>📘</span>
+                <span>
+                  <span className="mt">{r.methods.comp.title}</span>
+                  <span className="md">{r.methods.comp.desc}</span>
+                  <span className="soon">{r.comingSoon}</span>
+                </span>
+              </div>
+            )}
 
             <div className="method" aria-disabled="true">
               <span className="mi" aria-hidden>✎</span>
