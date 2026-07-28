@@ -4,7 +4,9 @@ import { strings } from "@/lib/i18n/strings"
 import { imageUrl } from "@/lib/display"
 import { resolveFlags, ALL_OFF } from "@/lib/flags"
 import { SetDetailView } from "@/components/set-detail/set-detail-view"
-import type { SetPart, SetFig, ModFreePart, SetAllocation } from "@/lib/types/set-detail"
+import type {
+  SetPart, SetFig, ModFreePart, SetAllocation, FreeComponent, CopyInfo,
+} from "@/lib/types/set-detail"
 
 export async function generateMetadata({
   params,
@@ -38,7 +40,7 @@ export default async function SetDetailPage({
        estimated_value_bl, value_tier, value_base_nok, value_override_nok,
        value_addback_box_nok, value_addback_manual_nok, value_grade_adjust_pct,
        value_restoration_cost_nok, has_instructions, has_original_box,
-       ownership_id, created_at, image_filename`
+       set_group_id, ownership_id, created_at, image_filename`
     )
     .eq("id", id)
     .eq("status", "OWNED")
@@ -49,7 +51,7 @@ export default async function SetDetailPage({
   const [{ data: components }, { data: completeness }] = await Promise.all([
     supabase
       .from("object_components")
-      .select("kind, label, is_present, grade, note")
+      .select("id, kind, label, is_present, grade, damage_tags, note, linked_object_id")
       .eq("object_id", id)
       .order("kind"),
     supabase
@@ -106,6 +108,37 @@ export default async function SetDetailPage({
     allocations = (allocRes.data as SetAllocation[]) ?? []
   }
 
+  // Contents & condition (Flow 3, FF_COMPONENTS): loose manuals/boxes that match
+  // this set (for Allocate), and this copy's place within its set_group.
+  let freeComponents: FreeComponent[] = []
+  let copyInfo: CopyInfo | null = null
+  if (flags.FF_COMPONENTS && user) {
+    const [freeCompRes, siblingRes] = await Promise.all([
+      obj.set_number
+        ? supabase
+            .from("v_free_components")
+            .select("source_object_id, object_type, name, set_number, condition_grade")
+            .eq("user_id", user.id)
+            .eq("set_number", obj.set_number)
+        : Promise.resolve({ data: [] as FreeComponent[] }),
+      obj.set_group_id
+        ? supabase
+            .from("objects")
+            .select("id, created_at")
+            .eq("user_id", user.id)
+            .eq("set_group_id", obj.set_group_id)
+            .eq("status", "OWNED")
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: null }),
+    ])
+    freeComponents = (freeCompRes.data as FreeComponent[]) ?? []
+    const siblings = (siblingRes.data as { id: string }[] | null) ?? null
+    if (siblings && siblings.length > 1) {
+      const index = siblings.findIndex((s) => s.id === obj.id)
+      copyInfo = { index: index >= 0 ? index + 1 : 1, total: siblings.length }
+    }
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""
 
   return (
@@ -120,6 +153,8 @@ export default async function SetDetailPage({
       figs={figs}
       freeParts={freeParts}
       allocations={allocations}
+      freeComponents={freeComponents}
+      copyInfo={copyInfo}
     />
   )
 }

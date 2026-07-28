@@ -581,6 +581,60 @@ export const strings = deepFreeze({
       incFig: 'Increase figures you have',
       decFig: 'Decrease figures you have',
     },
+
+    // Contents & condition / CIB (Flow 3, FF_COMPONENTS).
+    contentsUI: {
+      copyBadge: (n: number, total: number) => `Copy ${n} of ${total}`,
+      valueImpact: 'Value impact →',
+      present: 'Present · with this copy',
+      notPresent: 'Not with this copy',
+      markPresent: 'Mark present',
+      markNotPresent: 'Mark not present',
+      togglePresent: 'Present with this copy',
+      looseAvailable: (n: number, word: string) =>
+        `${n} loose ${word}${n === 1 ? '' : 'es'} in your inventory`,
+      allocate: (word: string) => `Allocate ${word}`,
+      allocated: 'Allocated from inventory',
+      condition: 'Condition & damage',
+      overall: 'Overall condition',
+      kinds: {
+        INSTRUCTIONS: 'Instructions',
+        ORIGINAL_BOX: 'Original box',
+        STICKER_SHEET: 'Sticker sheet',
+        EXTRAS: 'Extras',
+      } as Record<string, string>,
+      word: { INSTRUCTIONS: 'manual', ORIGINAL_BOX: 'box' } as Record<string, string>,
+      cibPrefix: 'This copy:',
+      cibParts: (pct: string) => `parts ${pct}`,
+      cibInstr: 'instructions ✓',
+      cibNoInstr: 'no instructions',
+      cibBox: 'box ✓',
+      cibNoBox: 'no box',
+      cibHint:
+        'Register instructions & boxes on their own, then link them to any copy here.',
+    },
+
+    // Damage tags (canonical list, §7.3) — shared by components (Flow 3) and
+    // "to replace" (Flow 6).
+    damage: {
+      title: 'Condition & damage',
+      noteLabel: 'Note (optional)',
+      notePlaceholder: 'Anything worth recording…',
+      done: 'Done',
+      clear: 'Clear',
+      summary: (n: number) => (n === 0 ? 'Add detail' : `${n} tag${n === 1 ? '' : 's'}`),
+      tags: {
+        UV_YELLOWING: 'UV yellowing',
+        SCRATCHED: 'Scratched',
+        BITE_MARKS: 'Bite marks',
+        STRESS_CRACKS: 'Stress cracks',
+        PRINT_WORN: 'Print worn',
+        PRINT_MISSING: 'Print missing',
+        DISCOLOURED: 'Discoloured',
+        WARPED: 'Warped',
+        OTHER: 'Other',
+      } as Record<string, string>,
+    },
   },
 
   collectionExtra: {
