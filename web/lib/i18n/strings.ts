@@ -77,6 +77,7 @@ export const strings = deepFreeze({
         link_expired: 'That sign-in link has expired. Request a new one below.',
         link_used: 'That sign-in link has already been used. Request a new one below.',
         link_invalid: 'That sign-in link is invalid. Request a new one below.',
+        link_wrong_device: 'Open the sign-in link in the same browser and device you requested it from, then try again.',
         rate_limited: 'Too many attempts. Wait a minute before requesting another link.',
         missing_code: 'Sign-in could not complete. Please try again.',
         generic: 'Something went wrong signing in. Please try again.',

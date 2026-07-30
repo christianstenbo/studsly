@@ -32,11 +32,11 @@ function GoogleIcon() {
 
 const auth = strings.common.auth
 
-/** Map a normalized error code (from /auth/callback) to friendly copy; fall
- * back to showing the raw text for any legacy/unknown value. */
+/** Map a normalized error code (from /auth/callback) to friendly copy. Unknown
+ * values fall back to the generic string — we never surface a raw SDK message. */
 function friendlyError(raw?: string): string | null {
   if (!raw) return null
-  return auth.errors[raw] ?? decodeURIComponent(raw)
+  return auth.errors[raw] ?? auth.errors.generic
 }
 
 export function LoginForm({ error }: { error?: string }) {
@@ -49,37 +49,52 @@ export function LoginForm({ error }: { error?: string }) {
   const displayError = formError ?? friendlyError(error)
 
   const handleGoogleLogin = async () => {
+    setFormError(null)
     setGoogleLoading(true)
-    const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: { access_type: "offline", prompt: "consent" },
-      },
-    })
-    // Page will redirect — no need to reset loading
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: { access_type: "offline", prompt: "consent" },
+        },
+      })
+      // On success the browser redirects; only reset on error.
+      if (error) {
+        setGoogleLoading(false)
+        setFormError(auth.errors.generic)
+      }
+    } catch {
+      setGoogleLoading(false)
+      setFormError(auth.errors.generic)
+    }
   }
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
     setOtpLoading(true)
-    const supabase = createClient()
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        shouldCreateUser: true,
-      },
-    })
-    setOtpLoading(false)
-    if (otpError) {
-      const rateLimited = otpError.status === 429 || /rate/i.test(otpError.message)
-      setFormError(rateLimited ? auth.errors.rate_limited : auth.errors.generic)
-      return
+    try {
+      const supabase = createClient()
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true,
+        },
+      })
+      setOtpLoading(false)
+      if (otpError) {
+        const rateLimited = otpError.status === 429 || /rate/i.test(otpError.message)
+        setFormError(rateLimited ? auth.errors.rate_limited : auth.errors.generic)
+        return
+      }
+      setSentTo(email)
+    } catch {
+      setOtpLoading(false)
+      setFormError(auth.errors.generic)
     }
-    setSentTo(email)
   }
 
   if (sentTo) {

@@ -72,6 +72,11 @@ function normalize(raw: string): string {
   if (s.includes("expired") || s === "otp_expired") return "link_expired"
   if (s.includes("already") || s.includes("used")) return "link_used"
   if (s.includes("rate")) return "rate_limited"
+  // PKCE verifier is a cookie on the origin the link was requested from; a
+  // cross-origin/cross-device open loses it. token_hash links avoid this.
+  if (s.includes("verifier") || s.includes("code challenge") || s.includes("pkce")) {
+    return "link_wrong_device"
+  }
   if (s.includes("access_denied") || s.includes("invalid") || s.includes("otp")) return "link_invalid"
   return "generic"
 }
