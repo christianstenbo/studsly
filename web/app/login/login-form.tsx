@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { strings } from "@/lib/i18n/strings"
+import { authErrorMessage, classifySdkError } from "@/lib/auth-errors"
 
 // Google G icon
 function GoogleIcon() {
@@ -32,24 +34,42 @@ function GoogleIcon() {
 
 const auth = strings.common.auth
 
-/** Map a normalized error code (from /auth/callback) to friendly copy. Unknown
- * values fall back to the generic string — we never surface a raw SDK message. */
-function friendlyError(raw?: string): string | null {
-  if (!raw) return null
-  return auth.errors[raw] ?? auth.errors.generic
+/** Keep only digits, cap at six — makes paste of a whole code just work. */
+function cleanCode(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, 6)
 }
 
-export function LoginForm({ error }: { error?: string }) {
+export function LoginForm({
+  error,
+  emailHint,
+}: {
+  error?: string
+  /** Address carried back from a failed callback, so recovery needs no retyping. */
+  emailHint?: string
+}) {
+  const router = useRouter()
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState(emailHint ?? "")
   const [otpLoading, setOtpLoading] = useState(false)
-  const [sentTo, setSentTo] = useState<string | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
+  // A failed link that we can recover from opens straight into the code step,
+  // rather than dropping the user back at "enter your email" with an apology.
+  const [sentTo, setSentTo] = useState<string | null>(
+    error === "link_wrong_device" && emailHint ? emailHint : null
+  )
+  const [code, setCode] = useState("")
+  const [verifying, setVerifying] = useState(false)
+  const [errorKey, setErrorKey] = useState<string | null>(error ?? null)
 
-  const displayError = formError ?? friendlyError(error)
+  const codeRef = useRef<HTMLInputElement>(null)
+  const displayError = authErrorMessage(errorKey)
+
+  // Autofocus the code field whenever we land on the code step.
+  useEffect(() => {
+    if (sentTo) codeRef.current?.focus()
+  }, [sentTo])
 
   const handleGoogleLogin = async () => {
-    setFormError(null)
+    setErrorKey(null)
     setGoogleLoading(true)
     try {
       const supabase = createClient()
@@ -63,17 +83,25 @@ export function LoginForm({ error }: { error?: string }) {
       // On success the browser redirects; only reset on error.
       if (error) {
         setGoogleLoading(false)
-        setFormError(auth.errors.generic)
+        setErrorKey(classifySdkError(error))
       }
-    } catch {
+    } catch (e) {
       setGoogleLoading(false)
-      setFormError(auth.errors.generic)
+      setErrorKey(classifySdkError(e))
     }
   }
 
-  const handleMagicLink = async (e: React.FormEvent) => {
+  /**
+   * Request a code. `emailRedirectTo` is always sent explicitly and always names
+   * THIS origin — never SITE_URL. A link that comes back to a different host
+   * than the one that asked cannot complete its PKCE exchange, whatever device
+   * it is opened on. (The origin must also be on Supabase's redirect allowlist,
+   * or Supabase substitutes SITE_URL and we are back to the same failure —
+   * see docs/auth-setup.md.)
+   */
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault()
-    setFormError(null)
+    setErrorKey(null)
     setOtpLoading(true)
     try {
       const supabase = createClient()
@@ -86,17 +114,64 @@ export function LoginForm({ error }: { error?: string }) {
       })
       setOtpLoading(false)
       if (otpError) {
-        const rateLimited = otpError.status === 429 || /rate/i.test(otpError.message)
-        setFormError(rateLimited ? auth.errors.rate_limited : auth.errors.generic)
+        setErrorKey(classifySdkError(otpError))
         return
       }
+      setCode("")
       setSentTo(email)
-    } catch {
+    } catch (err) {
       setOtpLoading(false)
-      setFormError(auth.errors.generic)
+      setErrorKey(classifySdkError(err))
     }
   }
 
+  /**
+   * Verify the six digits. This is the primary path precisely because it does
+   * not care where the mail was read: no PKCE verifier is involved, so a code
+   * from a phone typed into a laptop signs the laptop in.
+   */
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (code.length !== 6) {
+      setErrorKey("code_incomplete")
+      return
+    }
+    setErrorKey(null)
+    setVerifying(true)
+    try {
+      const supabase = createClient()
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        email: sentTo!,
+        token: code,
+        type: "email",
+      })
+      if (otpError) {
+        setVerifying(false)
+        // A rejected six-digit code is a typo far more often than anything
+        // else; say so rather than blaming the link.
+        const key = classifySdkError(otpError)
+        setErrorKey(key === "link_invalid" ? "code_wrong" : key)
+        return
+      }
+      // Session cookie is set — let the server re-render behind it.
+      router.replace("/")
+      router.refresh()
+    } catch (err) {
+      setVerifying(false)
+      setErrorKey(classifySdkError(err))
+    }
+  }
+
+  const errorBox = displayError && (
+    <div
+      role="alert"
+      className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+    >
+      {displayError}
+    </div>
+  )
+
+  // ── Step 2: enter the code ────────────────────────────────────────────────
   if (sentTo) {
     return (
       <Card>
@@ -106,23 +181,74 @@ export function LoginForm({ error }: { error?: string }) {
             {auth.checkInboxDesc.replace("{email}", sentTo)}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={() => {
-              setSentTo(null)
-              setFormError(null)
-            }}
-          >
-            ←
-          </Button>
+        <CardContent className="space-y-4">
+          {errorBox}
+
+          <form onSubmit={handleVerify} className="space-y-3">
+            <label htmlFor="code" className="sr-only">
+              {auth.codeLabel}
+            </label>
+            <input
+              id="code"
+              ref={codeRef}
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]*"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(cleanCode(e.target.value))}
+              onPaste={(e) => {
+                // Paste the whole code — including "Your code is 123456".
+                e.preventDefault()
+                setCode(cleanCode(e.clipboardData.getData("text")))
+              }}
+              placeholder={auth.codePlaceholder}
+              aria-label={auth.codeLabel}
+              className="w-full rounded-md border border-gray-200 px-4 py-3 text-center text-2xl font-semibold tracking-[0.4em] outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+            />
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={verifying || code.length !== 6}
+            >
+              {verifying ? auth.verifyingCode : auth.verifyCode}
+            </Button>
+          </form>
+
+          <p className="text-center text-xs text-gray-400">{auth.linkAlternative}</p>
+
+          <div className="flex items-center justify-between gap-3 pt-1">
+            <button
+              type="button"
+              className="text-xs text-gray-500 underline hover:text-gray-700"
+              onClick={() => {
+                setSentTo(null)
+                setCode("")
+                setErrorKey(null)
+              }}
+            >
+              {auth.useAnotherEmail}
+            </button>
+            <button
+              type="button"
+              className="text-xs text-gray-500 underline hover:text-gray-700 disabled:opacity-50"
+              disabled={otpLoading}
+              onClick={(e) => {
+                setEmail(sentTo)
+                void handleSendCode(e)
+              }}
+            >
+              {otpLoading ? auth.sendingMagicLink : auth.resend}
+            </button>
+          </div>
         </CardContent>
       </Card>
     )
   }
 
+  // ── Step 1: choose a way in ───────────────────────────────────────────────
   return (
     <Card>
       <CardHeader className="text-center pb-4">
@@ -130,33 +256,10 @@ export function LoginForm({ error }: { error?: string }) {
         <CardDescription>{auth.cardDescription}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {displayError && (
-          <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {displayError}
-          </div>
-        )}
+        {errorBox}
 
-        {/* Primary: Google */}
-        <Button
-          variant="outline"
-          size="lg"
-          className="w-full gap-3"
-          onClick={handleGoogleLogin}
-          disabled={googleLoading}
-        >
-          <GoogleIcon />
-          {googleLoading ? auth.signingIn : auth.continueWithGoogle}
-        </Button>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 text-xs text-gray-400">
-          <span className="h-px flex-1 bg-gray-200" />
-          {auth.dividerOr}
-          <span className="h-px flex-1 bg-gray-200" />
-        </div>
-
-        {/* Secondary: email magic link */}
-        <form onSubmit={handleMagicLink} className="space-y-3">
+        {/* Primary: email code — the path that survives a device switch */}
+        <form onSubmit={handleSendCode} className="space-y-3">
           <label htmlFor="email" className="sr-only">
             {auth.emailLabel}
           </label>
@@ -170,16 +273,29 @@ export function LoginForm({ error }: { error?: string }) {
             placeholder={auth.emailPlaceholder}
             className="w-full rounded-md border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
           />
-          <Button
-            type="submit"
-            variant="outline"
-            size="lg"
-            className="w-full"
-            disabled={otpLoading || !email}
-          >
+          <Button type="submit" size="lg" className="w-full" disabled={otpLoading || !email}>
             {otpLoading ? auth.sendingMagicLink : auth.sendMagicLink}
           </Button>
         </form>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3 text-xs text-gray-400">
+          <span className="h-px flex-1 bg-gray-200" />
+          {auth.dividerOr}
+          <span className="h-px flex-1 bg-gray-200" />
+        </div>
+
+        {/* Secondary: Google */}
+        <Button
+          variant="outline"
+          size="lg"
+          className="w-full gap-3"
+          onClick={handleGoogleLogin}
+          disabled={googleLoading}
+        >
+          <GoogleIcon />
+          {googleLoading ? auth.signingIn : auth.continueWithGoogle}
+        </Button>
       </CardContent>
     </Card>
   )

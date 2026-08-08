@@ -81,6 +81,47 @@ separate things were true:
 Flows 1 (free pool, `b794072`, M10+M11), 2 (MOD, `5a83d4c`) and 3 (contents/CIB,
 `afc451d`) have been on `main` since 21–28 July. They were never missing.
 
+### The host must not change while you navigate
+
+Reported 2026-08-08: starting on a preview deploy and navigating internally
+ended up on production, where every flag is off — so the preview deploys could
+not be tested at all beyond their landing page.
+
+**It is not coming from app code.** That was checked and measured, not assumed:
+
+- No hardcoded host exists anywhere in `web/` — no `studsly.com`, no
+  `studsly.vercel.app`, no absolute `href`, `router.push` or `redirect`. Every
+  internal link is a relative `<Link href="/…">`. `next.config.ts` is empty and
+  no environment variable sets a base URL.
+- Every server redirect emits a **relative** `Location`. Measured against the
+  running app: the middleware auth gate returns `Location: /login`, and
+  `/auth/callback` and `/auth/confirm` return `/login?error=…`.
+- Those stay relative **with `Host` and `x-forwarded-host` both spoofed to
+  `www.studsly.com`**. A proxy cannot rewrite a host that is not in the response.
+- Unauthenticated navigation on the preview host was walked through in a browser:
+  `/register` and `/collection` both redirected to `/login` on the preview host,
+  never leaving it.
+
+That leaves two causes outside this repo, in order of likelihood:
+
+1. **Supabase substituting `SITE_URL` at sign-in.** If the preview host is not on
+   the redirect allowlist, Supabase does not error — it silently redirects to
+   `SITE_URL`, currently `https://studsly.vercel.app`. Sign-in then *completes*
+   on that host and sets the session cookie there, so everything after the
+   landing page is production. This matches the reported symptom exactly, and it
+   is the same root cause as the magic-link failure. Fixed by
+   [auth-setup.md §2 and §3](auth-setup.md) — allowlist the preview hosts and
+   point `SITE_URL` at the test surface.
+2. **A Vercel domain-level redirect** to the production domain. Check
+   Project → Settings → Domains for a redirect on the `.vercel.app` domains.
+
+Apply §2/§3 of auth-setup.md first, then re-run the acceptance check below. If
+the host still changes after that, it is cause 2 and it is in the Vercel
+dashboard.
+
+**Acceptance:** from a preview URL, navigate Home → Collection → Register →
+Insights → a set → back, and the host in the address bar never changes.
+
 ---
 
 ## 4. Branches

@@ -34,20 +34,35 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Public routes — no auth required
-  const publicRoutes = ["/login", "/auth/callback"]
+  // Public routes — no auth required. /auth/confirm must be here: it is the
+  // route that CREATES the session from a magic link, so requiring one first
+  // would bounce every cross-device sign-in straight back to /login.
+  const publicRoutes = ["/login", "/auth/callback", "/auth/confirm"]
   const isPublic = publicRoutes.some((route) => pathname.startsWith(route))
 
+  // Both gates must keep you on the deployment you are testing. Building the
+  // target with `new URL(path, request.url)` makes it same-origin, and Next
+  // then emits a RELATIVE `Location: /login` — measured, including with
+  // `Host` and `x-forwarded-host` both spoofed to www.studsly.com, where the
+  // header stayed relative. Do not reintroduce `request.nextUrl.clone()` with a
+  // mutated pathname: that reads the proxy's host back into the response and is
+  // how internal navigation can walk off a preview deploy onto production.
+  const redirectTo = (path: string) => {
+    const response = NextResponse.redirect(new URL(path, request.url))
+    // Carry over any cookies the session refresh just set. Dropping them would
+    // throw away a rotated refresh token and sign the user out on the next hop.
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie)
+    })
+    return response
+  }
+
   if (!user && !isPublic) {
-    const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = "/login"
-    return NextResponse.redirect(loginUrl)
+    return redirectTo("/login")
   }
 
   if (user && pathname === "/login") {
-    const homeUrl = request.nextUrl.clone()
-    homeUrl.pathname = "/"
-    return NextResponse.redirect(homeUrl)
+    return redirectTo("/")
   }
 
   return supabaseResponse

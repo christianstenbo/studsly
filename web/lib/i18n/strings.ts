@@ -63,23 +63,46 @@ export const strings = deepFreeze({
       pageDescription: 'AI-powered LEGO collection overview',
       tagline: 'Your LEGO collection, intelligently organized',
       cardTitle: 'Sign in',
-      cardDescription: 'Use your Google account to continue',
+      cardDescription: 'We email you a six-digit code — no password to remember',
       continueWithGoogle: 'Continue with Google',
       signingIn: 'Signing in…',
       dividerOr: 'or',
       emailLabel: 'Email',
       emailPlaceholder: 'you@example.com',
-      sendMagicLink: 'Email me a sign-in link',
+      sendMagicLink: 'Email me a sign-in code',
       sendingMagicLink: 'Sending…',
-      checkInboxTitle: 'Check your inbox',
-      checkInboxDesc: 'We sent a sign-in link to {email}. Open it on this device — the link expires after a while and works only once.',
+
+      // "Check your inbox" leads with the code, because the code is the path
+      // that survives reading your mail on a different device from the one you
+      // asked on. The link is the secondary option, not the headline.
+      checkInboxTitle: 'Enter your code',
+      checkInboxDesc:
+        'We sent a six-digit code to {email}. Type it here — it works even if you read the mail on your phone.',
+      codeLabel: 'Six-digit code',
+      codePlaceholder: '000000',
+      verifyCode: 'Sign in',
+      verifyingCode: 'Signing in…',
+      linkAlternative:
+        'The same email also has a sign-in link. Opening it works from any device.',
+      resend: 'Send a new code',
+      useAnotherEmail: '← Use a different email',
+
       errors: {
-        link_expired: 'That sign-in link has expired. Request a new one below.',
-        link_used: 'That sign-in link has already been used. Request a new one below.',
-        link_invalid: 'That sign-in link is invalid. Request a new one below.',
-        link_wrong_device: 'Open the sign-in link in the same browser and device you requested it from, then try again.',
-        rate_limited: 'Too many attempts. Wait a minute before requesting another link.',
-        missing_code: 'Sign-in could not complete. Please try again.',
+        // Link / code state
+        link_expired: 'That code has expired. Codes last about an hour — send a new one below.',
+        link_used: 'That code has already been used. Send a new one below.',
+        link_invalid: 'That code is not valid. Check the six digits, or send a new one below.',
+        code_wrong: 'That code does not match. Check the six digits and try again.',
+        code_incomplete: 'Enter all six digits.',
+        // Cross-origin PKCE: the verifier lives in the browser storage of the
+        // origin that asked for the link, so a different origin can never
+        // complete the exchange. Say that, and point at the way out.
+        link_wrong_device:
+          'That link was opened somewhere other than where you requested it, so it could not complete. Enter the six-digit code from the same email instead — that works from anywhere.',
+        rate_limited: 'Too many attempts. Wait a minute before requesting another code.',
+        network: 'Could not reach the server. Check your connection and try again.',
+        missing_code: 'That link was missing its sign-in token. Request a new code below.',
+        email_not_found: 'Enter your email again, then request a new code.',
         generic: 'Something went wrong signing in. Please try again.',
       } as Record<string, string>,
       legalPrefix: 'By signing in you agree to our',

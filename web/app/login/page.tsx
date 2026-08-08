@@ -11,7 +11,7 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; email?: string }>
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,7 +19,9 @@ export default async function LoginPage({
   // Already logged in — go to dashboard
   if (user) redirect("/")
 
-  const { error } = await searchParams
+  // `email` is carried back by /auth/callback so a failed link can drop the user
+  // straight onto the code step without retyping their address.
+  const { error, email } = await searchParams
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -48,7 +50,7 @@ export default async function LoginPage({
         </div>
 
         {/* Login card */}
-        <LoginForm error={error} />
+        <LoginForm error={error} emailHint={email} />
 
         <p className="text-center text-xs text-gray-400">
           {strings.common.auth.legalPrefix}{" "}
