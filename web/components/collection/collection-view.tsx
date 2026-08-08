@@ -10,9 +10,11 @@ import { createClient } from '@/lib/supabase/client'
 import { restore } from '@/lib/allocate'
 import { strings } from '@/lib/i18n/strings'
 import { formatNum, formatNok, statusBadge, themeYear, imageUrl } from '@/lib/display'
+import { EmptyState } from '@/components/ui/empty-state'
 
 const t = strings.collectionExtra
 const p = strings.pool
+const e = strings.empty
 
 type Tab = 'Sets' | 'Figures' | 'Animals' | 'Parts' | 'MOCs'
 
@@ -21,7 +23,27 @@ type Tab = 'Sets' | 'Figures' | 'Animals' | 'Parts' | 'MOCs'
  * cards, get the number back. Animals and Parts are handled separately: Animals
  * has nothing to list (see lib/counts.ts) and Parts lists the free-parts pool.
  */
-const LIST_TABS: Tab[] = ['Sets', 'Figures', 'MOCs']
+type ListTab = Extract<Tab, 'Sets' | 'Figures' | 'MOCs'>
+const LIST_TABS: ListTab[] = ['Sets', 'Figures', 'MOCs']
+const isListTab = (t: Tab): t is ListTab => (LIST_TABS as Tab[]).includes(t)
+
+/**
+ * Per-tab empty copy. Each list tab says why IT is empty — an empty Figures tab
+ * and an empty Sets tab are not the same situation and must not read alike —
+ * and separately why a SEARCH came back empty, which is a third thing again.
+ */
+const LIST_TAB_META: Record<
+  ListTab,
+  {
+    icon: string
+    empty: { title: string; body: string; action?: string }
+    noMatch: { title: string; body: string }
+  }
+> = {
+  Sets: { icon: '▦', empty: e.sets, noMatch: e.setsNoMatch },
+  Figures: { icon: '🐘', empty: e.figures, noMatch: e.figuresNoMatch },
+  MOCs: { icon: '✎', empty: e.mocs, noMatch: e.mocsNoMatch },
+}
 type View = 'grid' | 'table'
 type Sort =
   | 'valueDesc' | 'valueAsc' | 'recent' | 'nameAsc' | 'yearDesc' | 'partsDesc'
@@ -177,7 +199,7 @@ export function CollectionView({
         ))}
       </div>
 
-      {LIST_TABS.includes(tab) ? (
+      {isListTab(tab) ? (
         <>
           <div className="controls">
             <span className="lenslabel">{t.view}</span>
@@ -238,22 +260,34 @@ export function CollectionView({
           </div>
 
           {filtered.length === 0 ? (
+            // Three different empties, and they are not interchangeable: the
+            // whole collection is empty, this tab is empty, or the search found
+            // nothing. Each gets its own cause and its own next step.
             objects.length === 0 ? (
-              // Genuinely empty collection (a brand-new user), not a failed
-              // search — a real empty state with a way forward.
-              <div className="empty">
-                <div className="ei" aria-hidden>▦</div>
-                <div className="et">{t.emptyCollection}</div>
-                <div className="es">{t.emptyCollectionSub}</div>
-                <Link className="btnP" href="/register" style={{ marginTop: 12 }}>
-                  <span style={{ fontSize: 15, lineHeight: 1 }}>+</span> {t.register}
-                </Link>
-              </div>
+              <EmptyState
+                title={e.collection.title}
+                body={e.collection.body}
+                action={{ href: '/register', label: e.collection.action }}
+              />
+            ) : tabRows.length === 0 ? (
+              <EmptyState
+                icon={LIST_TAB_META[tab].icon}
+                title={LIST_TAB_META[tab].empty.title}
+                body={LIST_TAB_META[tab].empty.body}
+                // MOCs offers no action: that registration flow is not built,
+                // and a button that goes nowhere is worse than no button.
+                action={
+                  LIST_TAB_META[tab].empty.action
+                    ? { href: '/register', label: LIST_TAB_META[tab].empty.action! }
+                    : undefined
+                }
+              />
             ) : (
-              <div className="empty">
-                <div className="ei" aria-hidden>▦</div>
-                <div className="et">{t.noMatch}</div>
-              </div>
+              <EmptyState
+                icon={LIST_TAB_META[tab].icon}
+                title={LIST_TAB_META[tab].noMatch.title}
+                body={LIST_TAB_META[tab].noMatch.body}
+              />
             )
           ) : view === 'grid' ? (
             <div className="grid">
@@ -319,12 +353,14 @@ export function CollectionView({
           allocations={allocations}
           objectsById={objectsById}
         />
+      ) : tab === 'Parts' ? (
+        // Built, just not switched on for this user — say which, so a grey tab
+        // is not mistaken for a missing feature.
+        <EmptyState icon="◱" title={e.poolOff.title} body={e.poolOff.body} />
       ) : (
-        <div className="empty">
-          <div className="ei" aria-hidden>▦</div>
-          <div className="et">{t.tabPlaceholder(t.tabs[tab.toLowerCase() as keyof typeof t.tabs])}</div>
-          <div className="es">{t.tabPlaceholderSub}</div>
-        </div>
+        // Animals. No action offered on purpose: no button can create an animal
+        // flag that the schema does not have.
+        <EmptyState icon="🐘" title={e.animals.title} body={e.animals.body} />
       )}
     </div>
   )
@@ -425,17 +461,25 @@ function PoolTab({
 
   if (rows.length === 0) {
     return (
-      <div className="empty">
-        <div className="ei" aria-hidden>◱</div>
-        <div className="et">{p.empty}</div>
-        <div className="es">{p.emptySub}</div>
-      </div>
+      <EmptyState
+        icon="◱"
+        title={e.pool.title}
+        body={e.pool.body}
+        action={{ href: '/register/part', label: e.pool.action }}
+      />
     )
   }
 
   return (
     <>
       <p className="hint" style={{ margin: '0 0 12px' }}>{p.intro}</p>
+      {/* Every Allocated cell reading "—" is not self-explanatory. Say what an
+          allocation is and where to make one, once, above the table. */}
+      {allocs.length === 0 && (
+        <p className="hint" style={{ margin: '0 0 12px', color: 'var(--faint)' }}>
+          <b>{e.allocations.title}.</b> {e.allocations.body}
+        </p>
+      )}
       {error && (
         <p className="hint" role="alert" style={{ color: 'var(--brand)', marginBottom: 10 }}>
           {error}

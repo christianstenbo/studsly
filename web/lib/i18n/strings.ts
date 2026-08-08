@@ -234,6 +234,9 @@ export const strings = deepFreeze({
     },
     haveAllOfThis: 'Have all of these',
     nothingMissing: 'Nothing is missing. 🎉',
+    nothingMissingSub: 'Every part you counted is accounted for. Anything you later mark short shows up here and feeds your buy list.',
+    notCountedYet: 'You have not counted this set yet',
+    notCountedYetSub: 'Nothing is marked present, so Studsly cannot tell what is missing from what is simply uncounted. Count a few rows — or use “Have all” if you know the set is complete.',
     noPartsMatch: 'No parts match your search.',
     noSpares: 'This set has no registered spare parts.',
 
@@ -690,6 +693,81 @@ export const strings = deepFreeze({
         WARPED: 'Warped',
         OTHER: 'Other',
       } as Record<string, string>,
+    },
+  },
+
+  /**
+   * Empty states. Every one answers the same three questions in the same order:
+   * what this is, why it is empty, and the one obvious next step. Nothing here
+   * apologises, and nothing says "no data" — an empty screen that cannot say why
+   * it is empty is a screen that does not know what it is for.
+   */
+  empty: {
+    sets: {
+      title: 'No sets registered yet',
+      body: 'Sets are the backbone of a collection — register one and Studsly pulls its full part and figure list from the catalogue, so you can see what is complete and what is missing.',
+      action: 'Register your first set',
+    },
+    setsNoMatch: {
+      title: 'No sets match your search',
+      body: 'Try a shorter search, or clear it to see everything you own.',
+    },
+    figures: {
+      title: 'No figures registered on their own',
+      body: 'Figures that came inside a set are counted with that set. This tab is for figures, animals and assembled creatures you own separately.',
+      action: 'Register a figure',
+    },
+    figuresNoMatch: {
+      title: 'No figures match your search',
+      body: 'Try a shorter search, or clear it to see every figure you own.',
+    },
+    animals: {
+      title: 'Animals are not separated out yet',
+      body: 'Studsly stores an elephant, a dragon and a minifigure as the same kind of thing — one assembled entity. There is no animal flag to filter on, so this tab would have to invent a number. It does not. Your creatures are in Figures.',
+    },
+    mocs: {
+      title: 'No MOCs registered yet',
+      body: 'A MOC is your own build with no official set behind it. Registering one is not built yet — it is the next registration flow after parts and components.',
+    },
+    mocsNoMatch: {
+      title: 'No MOCs match your search',
+      body: 'Try a shorter search, or clear it to see every MOC you own.',
+    },
+    pool: {
+      title: 'No loose parts yet',
+      body: 'Loose parts are pieces you own that are not locked inside a built set. Register some and Studsly matches them against the parts your sets are missing — so you buy only what you genuinely do not have.',
+      action: 'Register a loose part',
+    },
+    poolOff: {
+      title: 'The free parts pool is not switched on for you',
+      body: 'This flow is built and behind a flag. Ask to be added and it appears on your next page load — no new build needed.',
+    },
+    buyList: {
+      title: 'Nothing to buy',
+      body: 'The buy list fills up when a set you have counted is missing pieces. Count a set first — until then Studsly has nothing to compare against.',
+      action: 'Count a set',
+    },
+    buyListCovered: {
+      title: 'Nothing left to buy',
+      body: 'Everything your counted sets are missing is already covered by loose parts you own. Allocate them from the set that needs them.',
+    },
+    allocations: {
+      title: 'Nothing allocated',
+      body: 'An allocation earmarks a loose part for a set that is missing it. The part stays yours and stays counted — it is just spoken for. Allocate from a set\u2019s parts list or from your buy list.',
+    },
+    insights: {
+      title: 'Not enough registered to draw anything yet',
+      body: 'Insights compares themes, value and completeness across what you own. Register a few sets and the charts fill in.',
+      action: 'Register your first set',
+    },
+    insightsNoValue: {
+      title: 'No value estimates yet',
+      body: 'Portfolio value appears once your sets carry a BrickLink estimate. Nothing to price up yet.',
+    },
+    collection: {
+      title: 'Your collection is empty',
+      body: 'Studsly counts studs, not boxes. Register the first thing you own — a set, a figure or a handful of loose parts — and everything else builds on it.',
+      action: 'Register your first set',
     },
   },
 

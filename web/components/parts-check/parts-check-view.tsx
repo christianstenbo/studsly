@@ -941,8 +941,23 @@ export function PartsCheckView({
             <tbody className="divide-y divide-gray-50">
               {visibleRows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                    {tab === 'MISSING' ? t.nothingMissing : t.noPartsMatch}
+                  <td colSpan={6} className="px-6 py-10 text-center">
+                    {tab !== 'MISSING' ? (
+                      <span className="text-gray-400">{t.noPartsMatch}</span>
+                    ) : stats.present === 0 ? (
+                      // Nothing counted yet is NOT the same as nothing missing.
+                      // Saying "nothing missing" here would be a lie of omission
+                      // — it is why set 40370 sat at 0/184 looking complete.
+                      <>
+                        <div className="font-semibold text-gray-700">{t.notCountedYet}</div>
+                        <div className="mt-1 text-sm text-gray-400">{t.notCountedYetSub}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="font-semibold text-gray-700">{t.nothingMissing}</div>
+                        <div className="mt-1 text-sm text-gray-400">{t.nothingMissingSub}</div>
+                      </>
+                    )}
                   </td>
                 </tr>
               )}

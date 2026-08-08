@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { strings } from "@/lib/i18n/strings"
 import { formatNum, formatNok } from "@/lib/display"
 import { collectionCounts, collectionAggregates } from "@/lib/counts"
+import { EmptyState } from "@/components/ui/empty-state"
 import { InsightsBars, type BarRow } from "@/components/insights/insights-bars"
 
 export const metadata = { title: strings.insights.pageTitle }
@@ -56,6 +57,22 @@ export default async function InsightsPage() {
   // Same definitions as the Collection tabs — see lib/counts.ts. "Figures" here
   // is entities you own, not sum(num_minifigs); that number describes the sets,
   // and it now appears under the tile that says so.
+  // Nothing registered means nothing to compare. Rendering empty charts and a
+  // row of zeroes would look like a broken page rather than a new account.
+  if (objects.length === 0) {
+    return (
+      <div className="sc-insights">
+        <h1>{i.title}</h1>
+        <EmptyState
+          icon="◱"
+          title={strings.empty.insights.title}
+          body={strings.empty.insights.body}
+          action={{ href: "/register", label: strings.empty.insights.action }}
+        />
+      </div>
+    )
+  }
+
   const entities = collectionCounts(objects, { poolRows: null })
   const agg = collectionAggregates(objects)
   const totalValue = agg.value
@@ -120,7 +137,7 @@ export default async function InsightsPage() {
             </div>
             <div>
               <InsightsBars title={i.valueByTheme} rows={valueByTheme} valueHeader={i.tableValue} />
-              {valueByTheme.length === 0 && <p className="hint">—</p>}
+              {valueByTheme.length === 0 && <p className="hint">{i.emptyValue}</p>}
             </div>
           </div>
         ) : (
