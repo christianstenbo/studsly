@@ -87,6 +87,13 @@ Body — replace the template wholesale:
 </p>
 ```
 
+**A third reason the code has to lead**, found while testing this on 2026-08-08:
+a magic link sent to Gmail came back `otp_expired` within minutes of delivery,
+un-clicked. Mail providers pre-fetch links for security scanning, and a magic
+link is single-use — the scanner spends it. The user then sees "that link has
+expired" for a link they never opened. A six-digit code cannot be spent by a
+scanner. Treat link-only sign-in as unreliable on Gmail, not merely inconvenient.
+
 Two things matter here and both are deliberate:
 
 - **`{{ .Token }}` leads.** It is the only path that does not care where the mail
@@ -116,6 +123,20 @@ Scope it to the team subdomain, exactly as written above.
 When a requested `redirect_to` is **not** on this list, Supabase does not error —
 it quietly substitutes `SITE_URL`. That substitution is what sent `+tom3`'s link
 to `studsly.vercel.app` while the verifier sat on the preview origin.
+
+Confirmed on 2026-08-08. A sign-in requested from `http://localhost:3000` arrived
+with the link intact:
+
+```
+https://jnytmankztlqozolizdt.supabase.co/auth/v1/verify
+  ?token=pkce_…&type=magiclink
+  &redirect_to=http://localhost:3000/auth/callback     <-- honoured, not replaced
+```
+
+localhost is allow-listed by default, so the app's `emailRedirectTo` was passed
+through untouched. The app has always been sending the right value. The only
+difference for the preview hosts is that they are missing from the list above —
+which is why adding them is the entire fix.
 
 ## 3. Site URL
 
