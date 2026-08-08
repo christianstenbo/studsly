@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { resolveFlags } from "@/lib/flags"
+import { getFlagsFor } from "@/lib/flags-server"
 import { strings } from "@/lib/i18n/strings"
 import { ComponentForm } from "@/components/register/component-form"
 
@@ -17,7 +17,7 @@ export default async function RegisterComponentPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
-  const flags = resolveFlags(user.email)
+  const flags = await getFlagsFor(supabase, user)
   if (!flags.FF_COMPONENTS) redirect("/register")
 
   return <ComponentForm />

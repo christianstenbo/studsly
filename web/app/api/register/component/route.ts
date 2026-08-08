@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { setNumberCandidates } from "@/lib/set-number"
+import { qualityForRegistration } from "@/lib/quality"
 
 // Flow 4 — register a standalone instruction or original box. ownership_id is
 // filled by the DB trigger (SL-, v4 M14). set_number is resolved against the
@@ -75,7 +76,8 @@ export async function POST(req: NextRequest) {
     location_id: locId ?? null,
     condition_grade: GRADES.includes(grade) ? (grade as string) : null,
     registered_at: new Date().toISOString().split("T")[0],
-    quality_level: "BASIC",
+    // One symbol for every registration route (lib/quality.ts).
+    quality_level: qualityForRegistration(),
   }
 
   const { data: obj, error } = await supabase

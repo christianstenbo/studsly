@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { strings } from "@/lib/i18n/strings"
-import { resolveFlags } from "@/lib/flags"
+import { getFlagsFor } from "@/lib/flags-server"
 
 export const metadata = { title: strings.register.pageTitle }
 
@@ -16,7 +16,7 @@ const r = strings.register
 export default async function RegisterPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const flags = resolveFlags(user?.email)
+  const flags = await getFlagsFor(supabase, user)
 
   return (
     <div className="sc-register">
@@ -65,14 +65,24 @@ export default async function RegisterPage() {
               </span>
             </Link>
 
-            <div className="method" aria-disabled="true">
-              <span className="mi" aria-hidden>◱</span>
-              <span>
-                <span className="mt">{r.methods.parts.title}</span>
-                <span className="md">{r.methods.parts.desc}</span>
-                <span className="soon">{r.comingSoon}</span>
-              </span>
-            </div>
+            {flags.FF_POOL ? (
+              <Link className="method" href="/register/part">
+                <span className="mi" aria-hidden>◱</span>
+                <span>
+                  <span className="mt">{r.methods.parts.title}</span>
+                  <span className="md">{r.methods.parts.desc}</span>
+                </span>
+              </Link>
+            ) : (
+              <div className="method" aria-disabled="true">
+                <span className="mi" aria-hidden>◱</span>
+                <span>
+                  <span className="mt">{r.methods.parts.title}</span>
+                  <span className="md">{r.methods.parts.desc}</span>
+                  <span className="soon">{r.notEnabled}</span>
+                </span>
+              </div>
+            )}
 
             {flags.FF_COMPONENTS ? (
               <Link className="method" href="/register/component">
@@ -88,7 +98,7 @@ export default async function RegisterPage() {
                 <span>
                   <span className="mt">{r.methods.comp.title}</span>
                   <span className="md">{r.methods.comp.desc}</span>
-                  <span className="soon">{r.comingSoon}</span>
+                  <span className="soon">{r.notEnabled}</span>
                 </span>
               </div>
             )}
