@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { qualityForRegistration } from "@/lib/quality"
 
 // ownership_id is assigned by the DB (objects BEFORE INSERT trigger,
 // generate_ownership_id -> SL-XXXXXX, v4 M14). This route no longer mints ids;
@@ -54,7 +55,10 @@ export async function POST(req: NextRequest) {
     wear_level: wearLevel ?? null,
     location_id: locId ?? null,
     registered_at: today,
-    quality_level: "BASIC",
+    // Every registration starts at BASIC — a catalogue reference and nothing
+    // more. One symbol, not a string literal, so every write site is greppable
+    // and the ladder in lib/quality.ts stays the only definition.
+    quality_level: qualityForRegistration(),
   }
 
   // The trigger fills ownership_id; read both back in the same round-trip.

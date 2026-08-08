@@ -26,6 +26,7 @@ import type {
   SparePart,
 } from '@/lib/types/parts'
 import { strings } from '@/lib/i18n/strings'
+import { promoteObjectQuality } from '@/lib/quality'
 
 const t = strings.partsCheck
 
@@ -438,6 +439,16 @@ export function PartsCheckView({
 
   const supabase = useMemo(() => createClient(), [])
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  /**
+   * Rows this user has touched in this session. VERIFIED means "every row was
+   * counted", and the only honest way to know that is to watch it happen —
+   * qty_present alone cannot distinguish a count from a claim, which is the
+   * entire reason quality_level exists (lib/quality.ts).
+   *
+   * A ref, not state: it drives no rendering, and re-rendering the whole parts
+   * table on every keystroke of a 184-row count would be a real cost.
+   */
+  const touched = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     const pending = timers.current
@@ -458,8 +469,17 @@ export function PartsCheckView({
         .eq('id', rowId)
       setSaving((n) => n - 1)
       setSaveError(error ? strings.common.saveFailed : null)
+      if (error) return
+
+      // Every row touched at least once => this was a real count, not a claim.
+      // promoteObjectQuality is monotonic and idempotent, so re-touching the
+      // last row does not generate another write.
+      const total = rows.length + figs.length
+      if (total > 0 && touched.current.size >= total) {
+        await promoteObjectQuality(supabase, objectId, 'countedEveryRow')
+      }
     },
-    [supabase]
+    [supabase, objectId, rows.length, figs.length]
   )
 
   const schedule = useCallback(
@@ -480,6 +500,7 @@ export function PartsCheckView({
 
   const setPartPresent = useCallback(
     (rowId: string, qty: number) => {
+      touched.current.add(`inventory_parts:${rowId}`)
       setRows((prev) => prev.map((r) => (r.id === rowId ? { ...r, qty_present: qty } : r)))
       schedule('inventory_parts', rowId, qty)
     },
@@ -488,14 +509,26 @@ export function PartsCheckView({
 
   const setFigPresent = useCallback(
     (figId: string, qty: number) => {
+      touched.current.add(`object_minifigs:${figId}`)
       setFigs((prev) => prev.map((f) => (f.id === figId ? { ...f, qty_present: qty } : f)))
       schedule('object_minifigs', figId, qty)
     },
     [schedule]
   )
 
+  /**
+   * "Have all" / "Reset". A CLAIM about the set, not a count of it.
+   *
+   * This writes the same qty_present values a genuine count writes — that is
+   * exactly the problem quality_level solves — so it deliberately does NOT mark
+   * rows as touched and does NOT promote quality. A set you said you have stays
+   * BASIC; a set you counted becomes VERIFIED. Do not "fix" this by promoting
+   * here: it would erase the only signal that tells the two apart, and an
+   * insurance export cannot afford that.
+   */
   const setAll = useCallback(
     async (full: boolean) => {
+      touched.current.clear()
       setRows((prev) => prev.map((r) => ({ ...r, qty_present: full ? r.qty_expected : 0 })))
       setFigs((prev) => prev.map((f) => ({ ...f, qty_present: full ? f.qty_expected : 0 })))
       setSaving((n) => n + 1)
