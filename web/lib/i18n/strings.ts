@@ -26,11 +26,16 @@ function deepFreeze<T>(value: T): T {
 
 const objectTypes: Record<ObjectType, string> = {
   SET: 'Set',
-  MINIFIG: 'Minifigure',
+  // Covers figures, animals and assembled creatures alike — the data model
+  // makes no distinction between an elephant and a minifigure.
+  MINIFIG: 'Figure',
   PART: 'Part',
   BULK: 'Bulk',
   MOC: 'MOC',
   MOD: 'MOD',
+  INSTRUCTION: 'Instructions',
+  ORIGINAL_BOX: 'Original box',
+  STICKER_SHEET: 'Sticker sheet',
 }
 
 const conditions: Record<ObjectCondition, string> = {

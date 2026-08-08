@@ -1,4 +1,19 @@
-export type ObjectType = 'SET' | 'MINIFIG' | 'PART' | 'BULK' | 'MOC' | 'MOD'
+/**
+ * Mirrors the Postgres `object_type` enum for the members the app handles.
+ * The component types (INSTRUCTION, ORIGINAL_BOX, STICKER_SHEET) are standalone
+ * objects that reach the Allocate track through v_free_components — they are
+ * NOT parts, and must never land in the free-parts pool.
+ */
+export type ObjectType =
+  | 'SET'
+  | 'MINIFIG'
+  | 'PART'
+  | 'BULK'
+  | 'MOC'
+  | 'MOD'
+  | 'INSTRUCTION'
+  | 'ORIGINAL_BOX'
+  | 'STICKER_SHEET'
 
 export type ObjectCondition =
   | 'NEW'
@@ -41,4 +56,7 @@ export const ALL_OBJECT_TYPES: ObjectType[] = [
   'BULK',
   'MOC',
   'MOD',
+  'INSTRUCTION',
+  'ORIGINAL_BOX',
+  'STICKER_SHEET',
 ]
