@@ -451,3 +451,21 @@ table.stbl td.val{text-align:right;font-weight:700;color:var(--ink);font-variant
 .sc-insights .datatable th{color:var(--muted);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.3px}
 .sc-insights .datatable td.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
 @media (max-width:640px){ .sc-insights .valuewrap,.sc-insights .grid2,.sc-insights .grid3,.sc-insights .ins{grid-template-columns:1fr} .sc-insights .bigval{font-size:30px} }
+
+/* ── Onboarding (three screens, once, for a user with nothing registered) ──── */
+.onbwrap{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.55);backdrop-filter:blur(3px)}
+.onbcard{width:100%;max-width:440px;background:var(--card);border-radius:18px;padding:26px 26px 22px;box-shadow:0 24px 60px rgba(15,23,42,.28)}
+.onbtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.onbstep{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--faint)}
+.onbskip{background:transparent;border:0;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;padding:4px 6px;border-radius:6px}
+.onbskip:hover{color:var(--ink2)}
+.onbicon{width:46px;height:46px;border-radius:13px;background:var(--tint);color:var(--brandText);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px}
+.onbtitle{font-size:20px;line-height:1.25;font-weight:800;letter-spacing:-.4px;color:var(--ink);margin:0 0 10px}
+.onbbody{font-size:14px;line-height:1.55;color:var(--ink2);margin:0 0 12px}
+.onbnote{font-size:12.5px;line-height:1.5;color:var(--muted);margin:0;padding-left:11px;border-left:2px solid var(--tint)}
+.onbdots{display:flex;gap:6px;margin:20px 0 16px}
+.onbdots i{width:20px;height:3px;border-radius:2px;background:var(--line)}
+.onbdots i.on{background:var(--brand)}
+.onbactions{display:flex;gap:9px}
+.onbactions .grow{flex:1}
+@media (max-width:480px){ .onbcard{padding:22px 20px 18px} .onbtitle{font-size:18px} }

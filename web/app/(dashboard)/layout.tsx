@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { TopNav } from "@/components/layout/top-nav"
 import { FLAGS } from "@/lib/flags"
 import { getFlagsFor } from "@/lib/flags-server"
+import { OnboardingGate } from "@/components/onboarding/onboarding-gate"
 
 /**
  * Dashboard layout — wraps all protected routes.
@@ -19,6 +20,21 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser()
 
   if (!user) redirect("/login")
+
+  // Onboarding: once, for a user with nothing registered. Both halves are
+  // checked server-side so the overlay never flashes on someone who has already
+  // seen it. `onboarded_at` lives in auth user metadata rather than
+  // localStorage, so skipping on a phone is still skipped on a laptop.
+  const onboardedAt = (user.user_metadata as { onboarded_at?: string } | null)?.onboarded_at
+  let showOnboarding = false
+  if (!onboardedAt) {
+    const { count } = await supabase
+      .from("objects")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .limit(1)
+    showOnboarding = (count ?? 0) === 0
+  }
 
   // Environment badge: visible on any non-production build, or on production if
   // a feature flag is somehow on — so it's always obvious you're not looking at
@@ -43,6 +59,7 @@ export default async function DashboardLayout({
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
       <TopNav user={user} envBadge={envBadge} />
       <main className="app-main">{children}</main>
+      {showOnboarding && <OnboardingGate />}
     </div>
   )
 }

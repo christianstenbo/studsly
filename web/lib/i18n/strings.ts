@@ -702,6 +702,39 @@ export const strings = deepFreeze({
    * apologises, and nothing says "no data" — an empty screen that cannot say why
    * it is empty is a screen that does not know what it is for.
    */
+  /**
+   * Onboarding — three screens, shown once to a user with nothing registered.
+   * The job is to explain the one idea the rest of the app rests on: Studsly
+   * counts studs, not boxes. Everything else follows from that.
+   */
+  onboarding: {
+    skip: 'Skip',
+    back: 'Back',
+    next: 'Next',
+    stepOf: (n: number, total: number) => `${n} of ${total}`,
+    screens: [
+      {
+        icon: '◉',
+        title: 'Studsly counts studs, not boxes',
+        body: 'The part is the atom here. Every part you own is in one of two states: free, or locked inside something you have assembled. A set is not one item — it is a few hundred parts that currently happen to be together.',
+        note: 'That is why a figure counts as one entity in its own list and as its pieces in the piece total. Two different questions, two different numbers.',
+      },
+      {
+        icon: '▦',
+        title: 'Register what you own',
+        body: 'Add a set and Studsly pulls its full part and figure list from the catalogue. Then you choose how honest you want to be: say “I have all of it”, or count for real.',
+        note: 'Both are fine, and Studsly keeps them apart. A claim is recorded as a claim; a count is recorded as a count. You will always be able to tell which one you are looking at.',
+      },
+      {
+        icon: '✦',
+        title: 'What you get back',
+        body: 'Completeness per set, a buy list of only what you are genuinely missing, and a pool of loose parts you can allocate to the sets that need them.',
+        note: 'The buy list nets against that pool, so you never buy a brick you already own in a drawer.',
+      },
+    ],
+    finish: 'Register your first set',
+  },
+
   empty: {
     sets: {
       title: 'No sets registered yet',
