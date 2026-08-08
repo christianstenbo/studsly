@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
 import { strings } from '@/lib/i18n/strings'
 
 const o = strings.onboarding
@@ -74,20 +73,33 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         </div>
 
         <div className="onbactions">
+          {/* .btnP / .btnO, not the shadcn Button: the design system's primary is
+              raspberry (--brand), and the shadcn default renders blue — which put
+              a blue CTA next to raspberry progress dots on the very first screen
+              a new user sees. */}
           {step > 0 && (
-            <Button variant="outline" size="lg" onClick={() => setStep((n) => n - 1)}>
+            <button type="button" className="btnO" onClick={() => setStep((n) => n - 1)}>
               {o.back}
-            </Button>
+            </button>
           )}
           {last ? (
             // Ends on the action, not on an empty dashboard.
-            <Button size="lg" className="grow" disabled={saving} onClick={() => void complete(true)}>
+            <button
+              type="button"
+              className="btnP grow"
+              disabled={saving}
+              onClick={() => void complete(true)}
+            >
               {o.finish}
-            </Button>
+            </button>
           ) : (
-            <Button size="lg" className="grow" onClick={() => setStep((n) => n + 1)}>
+            <button
+              type="button"
+              className="btnP grow"
+              onClick={() => setStep((n) => n + 1)}
+            >
               {o.next}
-            </Button>
+            </button>
           )}
         </div>
       </div>
