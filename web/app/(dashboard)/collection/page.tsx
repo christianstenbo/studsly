@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { CollectionView } from '@/components/collection/collection-view'
 import type { CollectionObject } from '@/lib/types/objects'
 import type { FreePart, ActiveAllocation } from '@/lib/types/pool'
-import { resolveFlags, ALL_OFF } from '@/lib/flags'
+import { getFlagsFor } from '@/lib/flags-server'
 import { strings } from '@/lib/i18n/strings'
 
 export const metadata = {
@@ -15,7 +15,7 @@ export default async function CollectionPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const flags = user ? resolveFlags(user.email) : ALL_OFF
+  const flags = await getFlagsFor(supabase, user)
 
   const { data: objects, error } = await supabase
     .from('objects')

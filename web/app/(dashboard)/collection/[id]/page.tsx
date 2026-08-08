@@ -2,7 +2,7 @@ import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { strings } from "@/lib/i18n/strings"
 import { imageUrl } from "@/lib/display"
-import { resolveFlags, ALL_OFF } from "@/lib/flags"
+import { getFlagsFor } from "@/lib/flags-server"
 import { SetDetailView } from "@/components/set-detail/set-detail-view"
 import type {
   SetPart, SetFig, ModFreePart, SetAllocation, FreeComponent, CopyInfo,
@@ -30,7 +30,7 @@ export default async function SetDetailPage({
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const flags = user ? resolveFlags(user.email) : ALL_OFF
+  const flags = await getFlagsFor(supabase, user)
 
   const { data: obj } = await supabase
     .from("objects")

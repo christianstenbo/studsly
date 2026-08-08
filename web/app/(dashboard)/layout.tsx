@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { TopNav } from "@/components/layout/top-nav"
-import { resolveFlags, FLAGS } from "@/lib/flags"
+import { FLAGS } from "@/lib/flags"
+import { getFlagsFor } from "@/lib/flags-server"
 
 /**
  * Dashboard layout — wraps all protected routes.
@@ -24,7 +25,7 @@ export default async function DashboardLayout({
   // the plain production app. VERCEL_ENV is 'production' | 'preview' | undefined
   // (local dev).
   const vercelEnv = process.env.VERCEL_ENV ?? "development"
-  const flags = resolveFlags(user.email)
+  const flags = await getFlagsFor(supabase, user)
   const onFlags = FLAGS.filter((f) => flags[f])
   const showBadge = vercelEnv !== "production" || onFlags.length > 0
   // Short commit SHA so a tester can paste the exact build into a bug report.
