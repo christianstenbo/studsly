@@ -2,6 +2,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { strings } from "@/lib/i18n/strings"
 import { formatNum, formatNok } from "@/lib/display"
+import { collectionCounts, collectionAggregates } from "@/lib/counts"
 import { InsightsBars, type BarRow } from "@/components/insights/insights-bars"
 
 export const metadata = { title: strings.insights.pageTitle }
@@ -52,9 +53,13 @@ export default async function InsightsPage() {
   const objects = (data ?? []) as Row[]
   const sets = objects.filter((o) => o.object_type === "SET")
 
-  const totalValue = objects.reduce((a, o) => a + (o.estimated_value_bl ?? 0), 0)
-  const totalParts = objects.reduce((a, o) => a + (o.num_parts ?? 0), 0)
-  const totalFigures = objects.reduce((a, o) => a + (o.num_minifigs ?? 0), 0)
+  // Same definitions as the Collection tabs — see lib/counts.ts. "Figures" here
+  // is entities you own, not sum(num_minifigs); that number describes the sets,
+  // and it now appears under the tile that says so.
+  const entities = collectionCounts(objects, { poolRows: null })
+  const agg = collectionAggregates(objects)
+  const totalValue = agg.value
+  const totalParts = agg.cataloguePieces
 
   const bs = { new: 0, unbuilt: 0, built: 0 }
   for (const o of sets) {
@@ -96,7 +101,7 @@ export default async function InsightsPage() {
         <div>
           <h1>{i.title}</h1>
           <p className="sub">
-            {i.subtitle(formatNum(sets.length), formatNum(totalParts), formatNok(totalValue))}
+            {i.subtitle(formatNum(entities.sets), formatNum(totalParts), formatNok(totalValue))}
           </p>
         </div>
         <button className="btnO" disabled>{i.exportReport}</button>
@@ -144,10 +149,10 @@ export default async function InsightsPage() {
         <div className="card">
           <div className="sect">{i.whatsInIt}</div>
           <div className="tiles">
-            <div className="tile"><div className="tl">{i.tiles.sets}</div><div className="tn">{formatNum(sets.length)}</div></div>
-            <div className="tile"><div className="tl">{i.tiles.figures}</div><div className="tn">{formatNum(totalFigures)}</div></div>
-            <div className="tile"><div className="tl">{i.tiles.animals}</div><div className="tn">—</div></div>
-            <div className="tile"><div className="tl">{i.tiles.parts}</div><div className="tn">{formatNum(totalParts)}</div></div>
+            <div className="tile"><div className="tl">{i.tiles.sets}</div><div className="tn">{formatNum(entities.sets)}</div></div>
+            <div className="tile"><div className="tl">{i.tiles.figures}</div><div className="tn">{formatNum(entities.figures)}</div><div className="tsub">{i.tiles.figuresSub(formatNum(agg.cataloguePiecesFigures))}</div></div>
+            <div className="tile"><div className="tl">{i.tiles.animals}</div><div className="tn">—</div><div className="tsub">{i.tiles.animalsSub}</div></div>
+            <div className="tile"><div className="tl">{i.tiles.parts}</div><div className="tn">{formatNum(totalParts)}</div><div className="tsub">{i.tiles.partsSub}</div></div>
           </div>
           <div className="hint" style={{ marginTop: 12 }}>{i.whatsInItNote}</div>
         </div>

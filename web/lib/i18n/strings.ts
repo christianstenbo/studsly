@@ -359,9 +359,17 @@ export const strings = deepFreeze({
       value: 'Value',
       valueUnit: '(NOK)',
       valueSub: 'BrickLink estimate',
-      parts: 'Parts',
+      // "Pieces", not "Parts": this is the catalogue piece total across your
+      // sets, not a list of part entities you own. The two are different
+      // denominators — see lib/counts.ts.
+      parts: 'Pieces',
+      partsSub: 'Catalogue total across your sets',
       setsUnit: (n: string) => `${n} sets`,
-      figsUnit: (n: string) => `${n} minifigs`,
+      // Figures registered as their own entities. NOT sum(num_minifigs), which
+      // counts the figures the catalogue says are inside your sets — 1,127 of
+      // them, none registered, none openable.
+      figsUnit: (n: string) => `${n} figures`,
+      figsInSets: (n: string) => `${n} more figures sit inside those sets, unregistered`,
       buildStatus: 'Build status',
       newSuffix: ' new',
       new: 'New',
@@ -410,7 +418,15 @@ export const strings = deepFreeze({
     whatsInIt: 'What’s in it',
     whatsInItNote:
       'Two independent counts: parts (bricks) and entities (figures & animals). No double-counting.',
-    tiles: { sets: 'Sets', figures: 'Figures', animals: 'Animals', parts: 'Parts' },
+    tiles: {
+      sets: 'Sets',
+      figures: 'Figures',
+      animals: 'Animals',
+      parts: 'Pieces',
+      figuresSub: (n: string) => `registered as their own entity · ${n} more sit inside sets`,
+      animalsSub: 'not separated from figures yet — the data model treats them alike',
+      partsSub: 'catalogue total across your sets',
+    },
     valueChartNote:
       'Shows the BrickLink estimate we have today. A your-value-over-time line builds as Studsly snapshots your collection each month.',
     showTable: 'Show as table',
@@ -678,8 +694,14 @@ export const strings = deepFreeze({
   },
 
   collectionExtra: {
-    summary: (sets: string, figures: string, animals: string, value: string) =>
-      `${sets} sets · ${figures} figures · ${animals} animals · ${value} estimated value`,
+    // Entity counts only — each is the length of a list you can open. The
+    // catalogue piece total is a different denominator and gets its own line.
+    summary: (sets: string, figures: string, value: string) =>
+      `${sets} sets · ${figures} figures · ${value} estimated value`,
+    piecesLine: (pieces: string) =>
+      `${pieces} pieces across those sets, per the catalogue.`,
+    piecesUnknown: (n: string) =>
+      `${n} sets have no piece count yet, so the real total is higher.`,
     register: 'Register',
     searchPlaceholder:
       'Search or ask across everything — e.g. “Millennium Falcon”, or a theme',
@@ -698,8 +720,8 @@ export const strings = deepFreeze({
       partsDesc: 'Piece count: most first',
     },
     shown: (n: number, total: number) => `${n} of ${total} shown`,
-    showing: (n: number, total: number) =>
-      n === total ? `Showing ${n} sets` : `Showing ${n} of ${total} sets`,
+    showing: (n: number, total: number, noun: string) =>
+      n === total ? `Showing ${n} ${noun}` : `Showing ${n} of ${total} ${noun}`,
     tabPlaceholder: (tab: string) => `${tab} view`,
     tabPlaceholderSub:
       'Cross-type views arrive with the registration flows in the next release. Sets are live now.',

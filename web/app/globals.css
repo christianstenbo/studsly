@@ -428,6 +428,9 @@ table.stbl td.val{text-align:right;font-weight:700;color:var(--ink);font-variant
 .sc-insights .tile{border:1px solid var(--line);border-radius:11px;padding:12px 13px;background:#fbfcfd}
 .sc-insights .tile .tl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
 .sc-insights .tile .tn{font-size:21px;font-weight:800;letter-spacing:-.5px;margin-top:4px;color:var(--ink);font-variant-numeric:tabular-nums}
+/* Says what the number above it counts. Every tile carries one — a number
+   without its denominator is how "Figures 1,127" survived next to an empty tab. */
+.sc-insights .tile .tsub{font-size:11px;line-height:1.35;color:var(--faint);margin-top:3px}
 .sc-insights .lrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #f1f3f6;text-decoration:none}
 .sc-insights .lrow:last-child{border-bottom:0}
 .sc-insights .lrow .rk{width:20px;font-size:12px;font-weight:800;color:var(--faint);text-align:center;flex:0 0 auto}

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { CollectionObject } from '@/lib/types/objects'
 import type { FreePart, ActiveAllocation } from '@/lib/types/pool'
 import { ALL_OFF as ALL_OFF_FLAGS, type Flags } from '@/lib/flags'
+import { collectionCounts, collectionAggregates } from '@/lib/counts'
 import { createClient } from '@/lib/supabase/client'
 import { restore } from '@/lib/allocate'
 import { strings } from '@/lib/i18n/strings'
@@ -14,6 +15,13 @@ const t = strings.collectionExtra
 const p = strings.pool
 
 type Tab = 'Sets' | 'Figures' | 'Animals' | 'Parts' | 'MOCs'
+
+/**
+ * Tabs that list objects. Each shows its own row count — open the tab, count the
+ * cards, get the number back. Animals and Parts are handled separately: Animals
+ * has nothing to list (see lib/counts.ts) and Parts lists the free-parts pool.
+ */
+const LIST_TABS: Tab[] = ['Sets', 'Figures', 'MOCs']
 type View = 'grid' | 'table'
 type Sort =
   | 'valueDesc' | 'valueAsc' | 'recent' | 'nameAsc' | 'yearDesc' | 'partsDesc'
@@ -57,25 +65,35 @@ export function CollectionView({
 
   const sets = useMemo(() => objects.filter((o) => o.object_type === 'SET'), [objects])
   const mocs = useMemo(() => objects.filter((o) => o.object_type === 'MOC'), [objects])
+  const figures = useMemo(
+    () => objects.filter((o) => o.object_type === 'MINIFIG'),
+    [objects]
+  )
 
-  const totals = useMemo(() => {
-    const value = objects.reduce((a, o) => a + (o.estimated_value_bl ?? 0), 0)
-    const figures = objects.reduce((a, o) => a + (o.num_minifigs ?? 0), 0)
-    const parts = objects.reduce((a, o) => a + (o.num_parts ?? 0), 0)
-    return { value, figures, parts }
-  }, [objects])
+  // Collection-wide sums. These are aggregates over the catalogue, NOT tab
+  // counts — they live in the header line where they are labelled as such.
+  // See lib/counts.ts for why that distinction is the whole point.
+  const totals = useMemo(() => collectionAggregates(objects), [objects])
+
+  /** The rows the current tab lists. Its count is what the tab displays. */
+  const tabRows: CollectionObject[] = useMemo(() => {
+    if (tab === 'Sets') return sets
+    if (tab === 'Figures') return figures
+    if (tab === 'MOCs') return mocs
+    return []
+  }, [tab, sets, figures, mocs])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     const base = q
-      ? sets.filter((o) =>
+      ? tabRows.filter((o) =>
           [o.name, o.set_number, o.theme, o.subtheme, o.year?.toString()]
             .filter(Boolean)
             .some((f) => (f as string).toLowerCase().includes(q))
         )
-      : sets
+      : tabRows
     return [...base].sort(comparators[sort])
-  }, [sets, query, sort])
+  }, [tabRows, query, sort])
 
   // Resolve an allocation's target set to a display name (targets are sets,
   // already present in `objects`).
@@ -85,13 +103,18 @@ export function CollectionView({
     return m
   }, [objects])
 
-  const tabCounts: Record<Tab, number> = {
-    Sets: sets.length,
-    Figures: totals.figures,
-    Animals: 0,
-    // With the pool on, Parts counts loose part rows; otherwise the piece total.
-    Parts: flags.FF_POOL ? freeParts.length : totals.parts,
-    MOCs: mocs.length,
+  // A tab's number is the number of rows that tab lists — nothing else. `null`
+  // means the tab lists nothing, so it shows no number at all rather than a
+  // borrowed or invented one. lib/counts.ts documents each definition.
+  const counts = collectionCounts(objects, {
+    poolRows: flags.FF_POOL ? freeParts.length : null,
+  })
+  const tabCounts: Record<Tab, number | null> = {
+    Sets: counts.sets,
+    Figures: counts.figures,
+    Animals: counts.animals,
+    Parts: counts.parts,
+    MOCs: counts.mocs,
   }
 
   return (
@@ -101,10 +124,17 @@ export function CollectionView({
           <h1>{strings.collection.title}</h1>
           <p className="sub">
             {t.summary(
-              formatNum(sets.length),
-              formatNum(totals.figures),
-              '—',
+              formatNum(counts.sets),
+              formatNum(counts.figures),
               formatNok(totals.value)
+            )}
+          </p>
+          {/* The catalogue piece total, labelled as the aggregate it is — and
+              honest about the sets whose piece count we do not have. */}
+          <p className="sub">
+            {t.piecesLine(formatNum(totals.cataloguePieces))}
+            {totals.piecesUnknownFor > 0 && (
+              <> {t.piecesUnknown(formatNum(totals.piecesUnknownFor))}</>
             )}
           </p>
         </div>
@@ -142,12 +172,12 @@ export function CollectionView({
             onClick={() => setTab(name)}
           >
             {t.tabs[name.toLowerCase() as keyof typeof t.tabs]}
-            <span>{name === 'Animals' ? '—' : formatNum(tabCounts[name])}</span>
+            {tabCounts[name] != null && <span>{formatNum(tabCounts[name])}</span>}
           </button>
         ))}
       </div>
 
-      {tab === 'Sets' ? (
+      {LIST_TABS.includes(tab) ? (
         <>
           <div className="controls">
             <span className="lenslabel">{t.view}</span>
@@ -204,7 +234,7 @@ export function CollectionView({
           </div>
 
           <div className="chips">
-            <span className="count">{t.shown(filtered.length, sets.length)}</span>
+            <span className="count">{t.shown(filtered.length, tabRows.length)}</span>
           </div>
 
           {filtered.length === 0 ? (
@@ -280,7 +310,7 @@ export function CollectionView({
           )}
 
           <div className="foot">
-            <span>{t.showing(filtered.length, sets.length)}</span>
+            <span>{t.showing(filtered.length, tabRows.length, t.tabs[tab.toLowerCase() as keyof typeof t.tabs].toLowerCase())}</span>
           </div>
         </>
       ) : tab === 'Parts' && flags.FF_POOL ? (

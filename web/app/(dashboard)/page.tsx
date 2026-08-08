@@ -2,6 +2,7 @@ import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { strings } from "@/lib/i18n/strings"
 import { formatNum, formatNok, statusBadge, themeYear, imageUrl } from "@/lib/display"
+import { collectionCounts, collectionAggregates } from "@/lib/counts"
 
 export const metadata = { title: strings.home.pageTitle }
 
@@ -56,16 +57,21 @@ export default async function HomePage() {
   const objects = (rows ?? []) as Row[]
   const sets = objects.filter((o) => o.object_type === "SET")
 
-  const totalValue = objects.reduce((a, o) => a + (o.estimated_value_bl ?? 0), 0)
-  const totalParts = objects.reduce((a, o) => a + (o.num_parts ?? 0), 0)
-  const totalMinifigs = objects.reduce((a, o) => a + (o.num_minifigs ?? 0), 0)
+  // Same definitions as the Collection tabs (lib/counts.ts). `figures` counts
+  // figure ENTITIES you can open; `cataloguePiecesFigures` counts the figures
+  // the catalogue says are inside your sets. Showing the second where the first
+  // belongs is what made the Figures tab read 1,127 next to an empty list.
+  const entities = collectionCounts(objects, { poolRows: null })
+  const agg = collectionAggregates(objects)
+  const totalValue = agg.value
+  const totalParts = agg.cataloguePieces
 
-  const counts = { new: 0, unbuilt: 0, built: 0 }
+  const buildCounts = { new: 0, unbuilt: 0, built: 0 }
   for (const o of sets) {
     const b = o.build_status
-    if (b === "BUILT" || o.is_built) counts.built++
-    else if (b === "UNBUILT") counts.unbuilt++
-    else counts.new++ // SEALED / NEW / unmigrated
+    if (b === "BUILT" || o.is_built) buildCounts.built++
+    else if (b === "UNBUILT") buildCounts.unbuilt++
+    else buildCounts.new++ // SEALED / NEW / unmigrated
   }
   const setTotal = sets.length || 1
   const pct = (n: number) => Math.round((n / setTotal) * 100)
@@ -112,26 +118,32 @@ export default async function HomePage() {
         <div className="kpi">
           <div className="kl">{s.kpi.parts}</div>
           <div className="kn">{formatNum(totalParts)}</div>
+          <div className="ks">{s.kpi.partsSub}</div>
           <div className="kslist">
-            <span>{s.kpi.setsUnit(formatNum(sets.length))}</span>
-            <span>{s.kpi.figsUnit(formatNum(totalMinifigs))}</span>
+            <span>{s.kpi.setsUnit(formatNum(entities.sets))}</span>
+            <span>{s.kpi.figsUnit(formatNum(entities.figures))}</span>
           </div>
+          {agg.cataloguePiecesFigures > 0 && (
+            <div className="ks">
+              {s.kpi.figsInSets(formatNum(agg.cataloguePiecesFigures))}
+            </div>
+          )}
         </div>
 
         <div className="kpi">
           <div className="kl">{s.kpi.buildStatus}</div>
           <div className="kn">
-            {pct(counts.new)}%<span className="knu">{s.kpi.newSuffix}</span>
+            {pct(buildCounts.new)}%<span className="knu">{s.kpi.newSuffix}</span>
           </div>
           <div className="statebar" aria-hidden>
-            <span className="s-new" style={{ width: `${pct(counts.new)}%` }} />
-            <span className="s-unb" style={{ width: `${pct(counts.unbuilt)}%` }} />
-            <span className="s-blt" style={{ width: `${pct(counts.built)}%` }} />
+            <span className="s-new" style={{ width: `${pct(buildCounts.new)}%` }} />
+            <span className="s-unb" style={{ width: `${pct(buildCounts.unbuilt)}%` }} />
+            <span className="s-blt" style={{ width: `${pct(buildCounts.built)}%` }} />
           </div>
           <div className="statelegend">
-            <span><i className="new" />{s.kpi.new} {formatNum(counts.new)}</span>
-            <span><i className="unb" />{s.kpi.unbuilt} {formatNum(counts.unbuilt)}</span>
-            <span><i className="blt" />{s.kpi.built} {formatNum(counts.built)}</span>
+            <span><i className="new" />{s.kpi.new} {formatNum(buildCounts.new)}</span>
+            <span><i className="unb" />{s.kpi.unbuilt} {formatNum(buildCounts.unbuilt)}</span>
+            <span><i className="blt" />{s.kpi.built} {formatNum(buildCounts.built)}</span>
           </div>
         </div>
 
